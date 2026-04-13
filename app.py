@@ -43,12 +43,32 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 2. 模型配置 (复用你的代码) =================
-MODEL_CONFIGS = {
-    "Deepseek-V3.2": {"base_url": "https://api.deepseek.com", "model_name": "deepseek-chat", "env_key": "sk-f9b3fb39229446a38ec2800a587880ae"},
-    "Qwen": {"base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model_name": "qwen-max", "env_key": "sk-c553c52a8fa54302ab732e2feaff4a1d"},
-    "GPT-4o": {"base_url": "https://openrouter.ai/api/v1", "model_name": "openai/gpt-4o-mini", "env_key": "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"}
-}
+# ================= 2. 模型配置 (使用 Streamlit Secrets) =================
+def get_model_configs():
+    """从 Streamlit Secrets 读取 API 密钥"""
+    try:
+        return {
+            "Deepseek-V3.2": {
+                "base_url": "https://api.deepseek.com",
+                "model_name": "deepseek-chat",
+                "env_key": st.secrets["deepseek_api_key"]
+            },
+            "Qwen": {
+                "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "model_name": "qwen-max",
+                "env_key": st.secrets["qwen_api_key"]
+            },
+            "GPT-4o": {
+                "base_url": "https://openrouter.ai/api/v1",
+                "model_name": "openai/gpt-4o-mini",
+                "env_key": st.secrets["openrouter_api_key"]
+            }
+        }
+    except Exception as e:
+        st.error(f"⚠️ 无法加载 API 密钥。请检查 Streamlit Secrets 配置: {e}")
+        st.stop()
+
+MODEL_CONFIGS = get_model_configs()
 
 CORPUS_CONFIG = {
     "红楼梦": "./dataset/500.xml",          # 你原有的 XML 文件
