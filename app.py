@@ -42,7 +42,51 @@ st.markdown("""
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
 </style>
 """, unsafe_allow_html=True)
+# ================= 0. 访问量统计模块 =================
+VISIT_COUNTER_FILE = "./dataset/visit_count.json"
 
+def get_and_update_visit_count():
+    """
+    读取并更新访问量。
+    利用 st.session_state 确保每个浏览器会话（Session）只算作一次有效访问，
+    防止因 Streamlit 的组件交互重载导致访问量暴增。
+    """
+    # 如果当前会话是第一次加载页面
+    if 'has_visited' not in st.session_state:
+        st.session_state.has_visited = True
+        count = 0
+        
+        # 1. 读取历史访问量
+        if os.path.exists(VISIT_COUNTER_FILE):
+            try:
+                with open(VISIT_COUNTER_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    count = data.get("total_visits", 0)
+            except Exception:
+                count = 0
+                
+        # 2. 访问量 +1
+        count += 1
+        
+        # 3. 写回文件
+        try:
+            with open(VISIT_COUNTER_FILE, "w", encoding="utf-8") as f:
+                json.dump({"total_visits": count}, f)
+        except Exception as e:
+            pass # 忽略无权限等写入错误
+            
+        return count
+        
+    else:
+        # 如果在这个会话中页面发生重载（比如点击了分析按钮），只读取，不增加计数
+        if os.path.exists(VISIT_COUNTER_FILE):
+            try:
+                with open(VISIT_COUNTER_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("total_visits", 0)
+            except Exception:
+                return 0
+        return 0
 # ================= 2. 模型配置 (使用 Streamlit Secrets) =================
 def get_model_configs():
     """从 Streamlit Secrets 读取 API 密钥"""
@@ -239,7 +283,16 @@ with st.sidebar:
     selected_model = st.selectbox("选择底层大模型", list(MODEL_CONFIGS.keys()), index=2)
     use_proxy = st.checkbox("启用海外代理 (针对 ChatGPT)", value=False)
     st.divider()
+    total_visits = get_and_update_visit_count()
+    st.markdown(f"""
+    <div style="background-color: #F8FAFC; padding: 10px; border-radius: 6px; text-align: center; border: 1px dashed #CBD5E1;">
+        <span style="font-size: 14px; color: #475569;">👁️ 本站累计访问量</span><br/>
+        <span style="font-size: 24px; font-weight: bold; color: #1E3A8A;">{total_visits}</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.divider()
     st.caption("© 多智能体隐喻在线识别")
+    
     # # ⭐ 新增：开发者与语料库维护专区
     # st.subheader("🛠️ 语料库自动化维护")
     # st.caption("将人工审查完毕的 `debug.csv` 一键分配写入对应的语料库文件中。")
