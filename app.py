@@ -274,7 +274,7 @@ st.markdown("""
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             gap: 10px !important; /* 菱形上下之间的缝隙 */
             width: 260px !important; /* 缩小整体容器宽度，防止旋转后超出屏幕 */
-            transform: rotate(45deg) scale(0.8) !important; /* 整体缩小 0.8 倍以适配小屏 */
+            transform: rotate(45deg) scale(0.5) !important; /* 整体缩小 0.8 倍以适配小屏 */
             margin: -20px auto 30px auto !important; /* 向上微调位置 */
         }
 
