@@ -11,7 +11,7 @@ import os
 import datetime
 from supabase import create_client, Client
 
-# UI 配置
+# ================= 1. 页面与专业 UI 配置 =================
 st.set_page_config(page_title="明清小说隐喻语料库与多智能体隐喻在线识别", layout="wide", page_icon="📚")
 
 st.markdown("""
@@ -30,10 +30,17 @@ st.markdown("""
         background-color: #F3F4F6; color: #4B5563; padding: 4px 10px;
         border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
     }
+    /* 新增：细粒度特征徽章样式 */
+    .attr-badge {
+        background-color: #EEF2FF; color: #4338CA; padding: 4px 10px;
+        border-radius: 6px; font-size: 12px; font-weight: 500; 
+        margin-right: 8px; margin-bottom: 8px; display: inline-block;
+        border: 1px solid #C7D2FE;
+    }
     .sentence {font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 10px; font-family: 'SimSun', serif;}
     .analysis-box {
-        background-color: #F8FAFC; padding: 12px; border-radius: 6px;
-        font-size: 14px; color: #475569; border-left: 3px solid #94A3B8; margin-top: 10px;
+        background-color: #F8FAFC; padding: 15px; border-radius: 6px;
+        font-size: 14px; color: #475569; border-left: 3px solid #94A3B8; margin-top: 12px;
     }
     .agent-box {
         padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E2E8F0;
@@ -41,10 +48,11 @@ st.markdown("""
     .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
     .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
+    .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
 </style>
 """, unsafe_allow_html=True)
 
-# 访问量统计
+# ================= 0. 访问量统计模块 =================
 VISIT_COUNTER_FILE = "./dataset/visit_count.json"
 
 def get_and_update_visit_count():
@@ -75,7 +83,7 @@ def get_and_update_visit_count():
                 return 0
         return 0
 
-# 模型与数据库配置
+# ================= 2. 模型与数据库配置 =================
 def get_model_configs():
     try:
         return {
@@ -110,41 +118,29 @@ CORPUS_CONFIG = {
     "儒林外史": "./dataset/rulinwaishi.csv",
 }
 
-# 初始化 Supabase
+# ================= 初始化 Supabase =================
 @st.cache_resource
 def init_supabase() -> Client:
-    """初始化并缓存 Supabase 客户端，防止重复连接"""
     try:
         url = st.secrets["SUPABASE_URL"]
         key = st.secrets["SUPABASE_KEY"]
         return create_client(url, key)
     except Exception as e:
-        st.error(f"⚠️ 无法连接到 Supabase 数据库。请检查 Secrets 里的配置: {e}")
+        st.error(f"⚠️ 无法连接到 Supabase 数据库: {e}")
         return None
 
-# 云端存储
-def save_feedback(book, sentence, orig_label, orig_analysis, new_label, new_analysis):
-    """将反馈数据安全地插入到 Supabase 云数据库中"""
+# ================= 3. 核心功能函数 =================
+def save_feedback(data_dict):
+    """保存包含新分类维度的反馈到 Supabase"""
     supabase = init_supabase()
-    if not supabase:
-        return False
-        
-    now = datetime.datetime.now()
+    if not supabase: return False
     
-    # 构建要插入的数据字典 (键名需与 Supabase 表的列名完全一致)
-    data = {
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M:%S"),
-        "book": book,
-        "sentence": sentence,
-        "original_label": int(orig_label),
-        "original_analysis": orig_analysis,
-        "suggested_label": int(new_label),
-        "suggested_analysis": new_analysis
-    }
+    now = datetime.datetime.now()
+    data_dict["date"] = now.strftime("%Y-%m-%d")
+    data_dict["time"] = now.strftime("%H:%M:%S")
     
     try:
-        supabase.table("feedback").insert(data).execute()
+        supabase.table("feedback").insert(data_dict).execute()
         return True
     except Exception as e:
         st.error(f"写入云数据库失败: {e}")
@@ -152,12 +148,14 @@ def save_feedback(book, sentence, orig_label, orig_analysis, new_label, new_anal
 
 @st.cache_data
 def load_all_corpora():
+    """全面升级：支持加载细粒度分类维度"""
     all_samples = []
     for book_name, file_path in CORPUS_CONFIG.items():
         if not os.path.exists(file_path):
             continue 
             
         try:
+            # XML 暂未加入细分类解析，保持兼容
             if file_path.endswith('.xml'):
                 tree = ET.parse(file_path)
                 root = tree.getroot()
@@ -167,16 +165,31 @@ def load_all_corpora():
                         "Book": book_name,
                         "Sentence": node.find('Sentence').text.strip() if node.find('Sentence') is not None else "",
                         "Label": int(node.find('Label').text) if node.find('Label') is not None else 0,
-                        "Analysis": analysis_node.text.strip() if analysis_node is not None else "暂无解析"
+                        "Analysis": analysis_node.text.strip() if analysis_node is not None else "暂无解析",
+                        "Syntax_Type": "未知", "Cognitive_Type": "未知", 
+                        "Conventionality": "未知", "Form_Features": "未知",
+                        "Syntax_Analysis": "", "Cognitive_Analysis": "",
+                        "Conventionality_Analysis": "", "Form_Analysis": ""
                     })
+            
+            # CSV 全面支持新生成的带有 13 列的数据
             elif file_path.endswith('.csv'):
                 df = pd.read_csv(file_path)
                 for _, row in df.iterrows():
                     all_samples.append({
                         "Book": book_name,
                         "Sentence": str(row.get('Sentence', '')).strip(),
-                        "Label": int(row.get('Label', 0)),
-                        "Analysis": str(row.get('Analysis', '暂无解析')).strip()
+                        "Label": int(row.get('Pred_Label', row.get('Label', 0))), # 兼容 Pred_Label
+                        "Analysis": str(row.get('Analysis', '暂无解析')).strip(),
+                        # 细分类提取 (带有容错机制)
+                        "Syntax_Type": str(row.get('syntax_type', '未知')).strip(),
+                        "Syntax_Analysis": str(row.get('syntax_analysis', '')).strip(),
+                        "Cognitive_Type": str(row.get('cognitive_type', '未知')).strip(),
+                        "Cognitive_Analysis": str(row.get('cognitive_analysis', '')).strip(),
+                        "Conventionality": str(row.get('conventionality', '未知')).strip(),
+                        "Conventionality_Analysis": str(row.get('conventionality_analysis', '')).strip(),
+                        "Form_Features": str(row.get('form_features', '未知')).strip(),
+                        "Form_Analysis": str(row.get('form_analysis', '')).strip()
                     })
         except Exception as e:
             st.error(f"加载 {book_name} 语料库 ({file_path}) 时出错: {e}")
@@ -185,9 +198,7 @@ def load_all_corpora():
 
 def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=3):
     metaphor_pool = [s for s in samples_pool if s['Label'] == 1 and s['Sentence'] != target_sentence]
-    if not metaphor_pool or not target_analysis:
-        return []
-    
+    if not metaphor_pool or not target_analysis: return []
     stop_chars = set("的了和是就在也不有与为以对于这那，。！？：；“”‘’（）《》、 \n\t比喻修辞本体喻体")
     target_set = set(target_analysis) - stop_chars
     if not target_set: return metaphor_pool[:top_k] 
@@ -195,83 +206,13 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     scored_items = []
     for s in metaphor_pool:
         compare_set = set(s['Analysis']) - stop_chars
-        if not compare_set:
-            continue
+        if not compare_set: continue
         score = len(target_set & compare_set) / len(target_set | compare_set)
         scored_items.append((score, s))
-        
     scored_items.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_items[:top_k]]
 
-def merge_debug_to_corpus():
-    debug_path = "./dataset/debug.csv"
-    if not os.path.exists(debug_path):
-        st.sidebar.error("⚠️ 未找到 ./dataset/debug.csv 文件。")
-        return
-        
-    try:
-        df_debug = pd.read_csv(debug_path)
-        required_cols = {'Book', 'Sentence', 'Suggested_Label', 'Suggested_Analysis'}
-        if not required_cols.issubset(df_debug.columns):
-            st.sidebar.error(f"debug.csv 缺少必要的列！请确保包含: {required_cols}")
-            return
-            
-        success_count = 0
-        for book_name, group in df_debug.groupby('Book'):
-            if book_name not in CORPUS_CONFIG:
-                st.sidebar.warning(f"未知书籍【{book_name}】，跳过合并。")
-                continue
-                
-            target_file = CORPUS_CONFIG[book_name]
-            
-            if target_file.endswith('.csv'):
-                df_target = pd.read_csv(target_file) if os.path.exists(target_file) else pd.DataFrame(columns=['Sentence', 'Label', 'Analysis'])
-                for _, row in group.iterrows():
-                    match_idx = df_target.index[df_target['Sentence'] == row['Sentence']].tolist()
-                    if match_idx:
-                        df_target.loc[match_idx[0], 'Label'] = int(row['Suggested_Label'])
-                        df_target.loc[match_idx[0], 'Analysis'] = str(row['Suggested_Analysis'])
-                    else:
-                        new_row = pd.DataFrame([{'Sentence': row['Sentence'], 'Label': int(row['Suggested_Label']), 'Analysis': str(row['Suggested_Analysis'])}])
-                        df_target = pd.concat([df_target, new_row], ignore_index=True)
-                df_target.to_csv(target_file, index=False, encoding='utf-8-sig')
-                success_count += len(group)
-                
-            elif target_file.endswith('.xml'):
-                if not os.path.exists(target_file):
-                    root = ET.Element("dataset")
-                    tree = ET.ElementTree(root)
-                else:
-                    tree = ET.parse(target_file)
-                    root = tree.getroot()
-                    
-                for _, row in group.iterrows():
-                    found = False
-                    for node in root.findall('metaphor'):
-                        sent_node = node.find('Sentence')
-                        if sent_node is not None and sent_node.text.strip() == row['Sentence']:
-                            node.find('Label').text = str(int(row['Suggested_Label']))
-                            ans_node = node.find('Analysis')
-                            if ans_node is not None: ans_node.text = str(row['Suggested_Analysis'])
-                            else: ET.SubElement(node, 'Analysis').text = str(row['Suggested_Analysis'])
-                            found = True
-                            break
-                    if not found:
-                        new_meta = ET.SubElement(root, 'metaphor')
-                        ET.SubElement(new_meta, 'Sentence').text = row['Sentence']
-                        ET.SubElement(new_meta, 'Label').text = str(int(row['Suggested_Label']))
-                        ET.SubElement(new_meta, 'Analysis').text = str(row['Suggested_Analysis'])
-                tree.write(target_file, encoding='utf-8', xml_declaration=True)
-                success_count += len(group)
-
-        backup_name = f"./dataset/debug_processed_{int(time.time())}.csv"
-        os.rename(debug_path, backup_name)
-        st.sidebar.success(f"合并成功！更新了 {success_count} 条语料。已将 debug.csv 备份为 {backup_name.split('/')[-1]}")
-        load_all_corpora.clear()
-    except Exception as e:
-        st.sidebar.error(f"合并过程中发生错误: {e}")
-
-# 侧边栏
+# ================= 4. 侧边栏设计 =================
 with st.sidebar:
     st.title("🏛️ 古籍隐喻计算平台")
     st.markdown("基于多智能体架构的明清小说隐喻识别系统。")
@@ -290,13 +231,12 @@ with st.sidebar:
     st.divider()
     st.caption("© 多智能体隐喻在线识别")
 
-# 主页面双 Tab 
+# ================= 5. 主页面双 Tab 设计 =================
 tab1, tab2 = st.tabs(["🔍 语料检索 (Corpus Explorer)", "🤖 在线识别 (Online Metaphor Recognition)"])
 
 # ----------------- Tab 1: 语料检索 -----------------
 with tab1:
     st.header("明清小说隐喻语料库 ")
-    
     samples = load_all_corpora()
     
     if not samples:
@@ -312,13 +252,10 @@ with tab1:
             filter_label = st.selectbox("类型筛选", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
         
         filtered_samples = samples
-        
         if search_query:
             filtered_samples = [s for s in filtered_samples if search_query in s["Sentence"]]
-            
         if filter_book != "全部":
             filtered_samples = [s for s in filtered_samples if s["Book"] == filter_book]
-            
         if filter_label == "仅隐喻 (Label 1)":
             filtered_samples = [s for s in filtered_samples if s["Label"] == 1]
         elif filter_label == "非隐喻 (Label 0)":
@@ -330,35 +267,96 @@ with tab1:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
             tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
             
+            # ========== 新增：组装细粒度特征 Badge 的 HTML ==========
+            badges_html = ""
+            details_html = ""
+            if s["Label"] == 1 and s.get("Syntax_Type") != "未知":
+                badges_html = f"""
+                <div style="margin-top: 8px;">
+                    <span class="attr-badge">📌 句法: {s['Syntax_Type']}</span>
+                    <span class="attr-badge">🧠 认知: {s['Cognitive_Type']}</span>
+                    <span class="attr-badge">⏳ 规约: {s['Conventionality']}</span>
+                    <span class="attr-badge">🎭 特征: {s['Form_Features']}</span>
+                </div>
+                """
+                details_html = f"""
+                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
+                    <b>细粒度特征判定依据：</b><br/>
+                    <ul style="margin-top: 5px; color: #64748B;">
+                        <li><b>句法视角：</b>{s['Syntax_Analysis']}</li>
+                        <li><b>认知视角：</b>{s['Cognitive_Analysis']}</li>
+                        <li><b>规约视角：</b>{s['Conventionality_Analysis']}</li>
+                        <li><b>综合特征：</b>{s['Form_Analysis']}</li>
+                    </ul>
+                </div>
+                """
+            
+            # ========== 渲染升级版 Sentence Card ==========
             st.markdown(f"""
             <div class="card">
                 <span class="{tag_class}">{tag_text}</span>
                 <span style="font-size: 12px; color: #64748B;">来源: 《{s['Book']}》</span>
-                <div class="sentence">{s['Sentence']}</div>
+                {badges_html}
+                <div class="sentence" style="margin-top: 10px;">{s['Sentence']}</div>
                 <details>
-                    <summary style="cursor: pointer; color: #3B82F6; font-size: 14px; font-weight: 500;">展开查看专家解析详情</summary>
-                    <div class="analysis-box">{s['Analysis']}</div>
+                    <summary style="cursor: pointer; color: #3B82F6; font-size: 14px; font-weight: 500;">展开查看多维专家解析</summary>
+                    <div class="analysis-box">
+                        <b>核心解析：</b><br/>
+                        {s['Analysis']}
+                        {details_html}
+                    </div>
                 </details>
             </div>
             """, unsafe_allow_html=True)
             
+            # ========== 升级版反馈表单 ==========
             with st.expander("✍️ 发现错误？提交更正意见"):
-                with st.form(key=f"feedback_form_{s}"):
-                    new_label = st.radio("正确的 Label 应该是：", options=[0, 1], index=s['Label'], horizontal=True)
-                    new_analysis = st.text_area("您认为更合理的解析：", value=s['Analysis'])
+                with st.form(key=f"feedback_form_{s['Sentence'][:10]}_{hash(s['Sentence'])}"):
+                    new_label = st.radio("正确的大类标签：", options=[0, 1], index=s['Label'], horizontal=True)
+                    new_analysis = st.text_area("整体解析意见：", value=s['Analysis'], height=80)
+                    
+                    # 针对隐喻的细粒度纠错框
+                    new_syntax = s['Syntax_Type']
+                    new_cog = s['Cognitive_Type']
+                    new_conv = s['Conventionality']
+                    new_form = s['Form_Features']
+                    
+                    if s['Label'] == 1:
+                        st.caption("🔽 细粒度分类修正 (选填)")
+                        col_f1, col_f2 = st.columns(2)
+                        with col_f1:
+                            new_syntax = st.text_input("句法类型", value=s['Syntax_Type'])
+                            new_cog = st.text_input("认知视角", value=s['Cognitive_Type'])
+                        with col_f2:
+                            new_conv = st.text_input("规约程度", value=s['Conventionality'])
+                            new_form = st.text_input("表现形式", value=s['Form_Features'])
+                            
                     submit_btn = st.form_submit_button("安全提交至云端")
                     
                     if submit_btn:
-                        is_success = save_feedback(s['Book'], s['Sentence'], s['Label'], s['Analysis'], new_label, new_analysis)
+                        # 组装完整的字典提交
+                        feedback_data = {
+                            "book": s['Book'],
+                            "sentence": s['Sentence'],
+                            "original_label": int(s['Label']),
+                            "original_analysis": s['Analysis'],
+                            "suggested_label": int(new_label),
+                            "suggested_analysis": new_analysis,
+                            # 新增字段
+                            "syntax_type": new_syntax,
+                            "cognitive_type": new_cog,
+                            "conventionality": new_conv,
+                            "form_features": new_form
+                        }
+                        is_success = save_feedback(feedback_data)
                         if is_success:
-                            st.success("✅ 提交成功！您的意见已安全送达 Supabase 云数据库。")
-            
+                            st.success("✅ 提交成功！多维纠正意见已安全送达数据库。")
             st.write("") 
 
-# 在线识别
+# ----------------- Tab 2: 在线识别 -----------------
 with tab2:
     st.header("多智能体隐喻在线识别")
-    st.markdown("输入任意明清小说语句，观察 **语义提取 (Agent 1) ➔ 考证推理 (Agent 2) ➔ 逻辑审核 (Agent 3)** 的推理全过程。")
+    st.markdown("输入任意明清小说语句，观察 **语义提取 ➔ 考证推理 ➔ 逻辑审核 ➔ 多维特征分类** 的全过程。")
     
     col_text, col_book = st.columns([3, 1])
     with col_text:
@@ -370,13 +368,13 @@ with tab2:
     
     if run_btn:
         book_context = target_book.strip() if target_book.strip() else "明清小说"
-        
         config = MODEL_CONFIGS[selected_model]
         http_client = httpx.Client(proxy="http://127.0.0.1:7890") if use_proxy else None
         client = OpenAI(api_key=config["env_key"], base_url=config["base_url"], http_client=http_client)
         
         st.divider()
         
+        # ================= Agent 1 =================
         with st.status("🕵️‍♂️ Agent 1 (语义提取) 正在分析表层结构...", expanded=True) as status1:
             prompt1 = f"""这是《{book_context}》中的句子。
                             你是语言学的专家，你有两个任务：
@@ -404,6 +402,7 @@ with tab2:
                 st.error(f"Agent 1 失败: {e}")
                 st.stop()
 
+        # ================= Agent 2 =================
         with st.status("⚖️ Agent 2 (推理) 正在进行深度隐喻考证...", expanded=True) as status2:
             prompt2 = f"""这是《{book_context}》中的句子。
 参考我提供给你的句子含义，以及可能用到比喻修辞的词（不一定真的有比喻），判断句子是否包含比喻修辞。注意结合比喻的定义和《{book_context}》相关知识，不要过度解读。
@@ -432,6 +431,7 @@ with tab2:
                 st.error(f"Agent 2 失败: {e}")
                 st.stop()
 
+        # ================= Agent 3 =================
         with st.status("👨‍⚖️ Agent 3 (逻辑审核) 正在生成最终决议...", expanded=True) as status3:
             prompt3 = f"""检查【报告】的分析和得到的结论是否矛盾。如果矛盾则根据【报告】的分析修正结果。如果句子中含有比喻输出label 1，否则输出0。报告: "{reason2}"
             请严格返回JSON格式：{{"label": 1或0, "analysis": "最终判决理由"}}"""
@@ -455,7 +455,50 @@ with tab2:
             except Exception as e:
                 st.error(f"Agent 3 失败: {e}")
                 
+        # ================= Agent 4 =================
         if final_label == 1:
+            with st.status("🧬 Agent 4 (多维度分类) 独立专家团正在进行细粒度特征判定...", expanded=True) as status4:
+                category_tasks = [
+                    {"task_name": "句法类型", "options": "名词性隐喻、动词性隐喻、形容词性/副词性隐喻、介词性隐喻", "keys": ["syntax_type", "syntax_analysis"]},
+                    {"task_name": "认知视角分类", "options": "结构隐喻、方位隐喻、本体隐喻", "keys": ["cognitive_type", "cognitive_analysis"]},
+                    {"task_name": "规约化角度", "options": "死喻、活喻", "keys": ["conventionality", "conventionality_analysis"]},
+                    {"task_name": "表现形式与特征", "options": "单选或多选：显性隐喻/隐性隐喻、根隐喻/派生隐喻、以相似性为基础的隐喻/创造相似性的隐喻", "keys": ["form_features", "form_analysis"]}
+                ]
+                
+                cols = st.columns(2)
+                st.markdown('<div class="agent-box agent4"><b>📊 细粒度分类报告：</b><br/><br/>', unsafe_allow_html=True)
+                
+                for idx, task in enumerate(category_tasks):
+                    agent_prompt = f"""作为语言学专家，请判定该《{book_context}》隐喻句的【{task['task_name']}】特征。
+【句子】: "{test_sentence}"
+【前期隐喻分析依据】: "{reason2}"
+
+请判断它属于以下哪些类别，并给出简要分析（必须严格从给定类别中选择）：
+{task['options']}
+
+请严格返回JSON格式：
+{{
+    "{task['keys'][0]}": "识别出的类别",
+    "{task['keys'][1]}": "分析依据"
+}}"""
+                    try:
+                        resp = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": agent_prompt}], temperature=0.0, response_format={'type': 'json_object'})
+                        res_json = json.loads(resp.choices[0].message.content.strip())
+                        col = cols[idx % 2]
+                        col.markdown(f"""
+                        <div style="background-color: #ffffff; padding: 10px; border-radius: 6px; border-left: 3px solid #8B5CF6; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <b style="color: #4C1D95; font-size: 14px;">{task['task_name']}</b><br/>
+                            <span style="font-size: 13px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold;">{res_json.get(task['keys'][0], '未知')}</span></span><br/>
+                            <span style="font-size: 12px; color: #475569;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"分类任务 {task['task_name']} 失败: {e}")
+                        
+                st.markdown('</div>', unsafe_allow_html=True)
+                status4.update(label="✅ Agent 4 (多维度分类) 完成！", state="complete", expanded=True)
+
+            # 关联推荐模块
             st.subheader("💡 基于当前分析逻辑的关联推荐")
             st.caption("将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
             samples = load_all_corpora()
@@ -464,7 +507,7 @@ with tab2:
                 if sim_matches:
                     for sim in sim_matches:
                         st.markdown(f"""
-                        <div class="sim-card">
+                        <div class="sim-card card" style="padding: 15px;">
                             <span class="tag-metaphor" style="float:right;">关联度极高</span>
                             <div style="font-size: 16px; font-weight: bold; color: #1E293B; margin-bottom: 5px;">《{sim['Book']}》</div>
                             <div style="font-size: 16px; font-family: 'SimSun', serif; margin-bottom: 8px;">{sim['Sentence']}</div>
