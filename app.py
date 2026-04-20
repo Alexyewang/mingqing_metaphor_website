@@ -147,6 +147,30 @@ def save_feedback(data_dict):
 @st.cache_data
 def load_all_corpora():
     all_samples = []
+    
+    def safe_get(val, default="未知"):
+        if pd.isna(val): return default
+        s = str(val).strip()
+        return s if s and s.lower() != 'nan' else default
+
+    # ========== 新增：提前加载“多维度其他解释”字典 ==========
+    multi_exp_dict = {}
+    multi_exp_path = "./dataset/multi_explanation.csv"
+    if os.path.exists(multi_exp_path):
+        try:
+            df_multi = pd.read_csv(multi_exp_path)
+            for _, row in df_multi.iterrows():
+                m_sent = safe_get(row.get('Sentence'), "")
+                m_exp = safe_get(row.get('Alternative_Analysis'), "")
+                if not m_exp or m_exp == "未知": # 容错：如果列名叫 Explanation
+                    m_exp = safe_get(row.get('Explanation'), "")
+                if m_sent and m_exp and m_exp != "未知":
+                    if m_sent not in multi_exp_dict:
+                        multi_exp_dict[m_sent] = []
+                    multi_exp_dict[m_sent].append(m_exp)
+        except Exception:
+            pass # 文件不存在或有误时，直接跳过，不阻断主语料加载
+
     for book_name, file_path in CORPUS_CONFIG.items():
         if not os.path.exists(file_path):
             continue 
@@ -157,32 +181,36 @@ def load_all_corpora():
                 root = tree.getroot()
                 for node in root.findall('metaphor'):
                     analysis_node = node.find('Analysis')
+                    sent_text = node.find('Sentence').text.strip() if node.find('Sentence') is not None else ""
                     all_samples.append({
                         "Book": book_name,
-                        "Sentence": node.find('Sentence').text.strip() if node.find('Sentence') is not None else "",
+                        "Sentence": sent_text,
                         "Label": int(node.find('Label').text) if node.find('Label') is not None else 0,
                         "Analysis": analysis_node.text.strip() if analysis_node is not None else "暂无解析",
                         "Syntax_Type": "未知", "Cognitive_Type": "未知", 
                         "Conventionality": "未知", "Form_Features": "未知",
-                        "Syntax_Analysis": "", "Cognitive_Analysis": "",
-                        "Conventionality_Analysis": "", "Form_Analysis": ""
+                        "Syntax_Analysis": "暂无解析", "Cognitive_Analysis": "暂无解析",
+                        "Conventionality_Analysis": "暂无解析", "Form_Analysis": "暂无解析",
+                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
                     })
             elif file_path.endswith('.csv'):
                 df = pd.read_csv(file_path)
                 for _, row in df.iterrows():
+                    sent_text = safe_get(row.get('Sentence', ''), "")
                     all_samples.append({
                         "Book": book_name,
-                        "Sentence": str(row.get('Sentence', '')).strip(),
+                        "Sentence": sent_text,
                         "Label": int(row.get('Pred_Label', row.get('Label', 0))), 
-                        "Analysis": str(row.get('Analysis', '暂无解析')).strip(),
-                        "Syntax_Type": str(row.get('syntax_type', '未知')).strip(),
-                        "Syntax_Analysis": str(row.get('syntax_analysis', '')).strip(),
-                        "Cognitive_Type": str(row.get('cognitive_type', '未知')).strip(),
-                        "Cognitive_Analysis": str(row.get('cognitive_analysis', '')).strip(),
-                        "Conventionality": str(row.get('conventionality', '未知')).strip(),
-                        "Conventionality_Analysis": str(row.get('conventionality_analysis', '')).strip(),
-                        "Form_Features": str(row.get('form_features', '未知')).strip(),
-                        "Form_Analysis": str(row.get('form_analysis', '')).strip()
+                        "Analysis": safe_get(row.get('Analysis', ''), "暂无解析"),
+                        "Syntax_Type": safe_get(row.get('syntax_type'), '未知'),
+                        "Syntax_Analysis": safe_get(row.get('syntax_analysis'), '暂无解析'),
+                        "Cognitive_Type": safe_get(row.get('cognitive_type'), '未知'),
+                        "Cognitive_Analysis": safe_get(row.get('cognitive_analysis'), '暂无解析'),
+                        "Conventionality": safe_get(row.get('conventionality'), '未知'),
+                        "Conventionality_Analysis": safe_get(row.get('conventionality_analysis'), '暂无解析'),
+                        "Form_Features": safe_get(row.get('form_features'), '未知'),
+                        "Form_Analysis": safe_get(row.get('form_analysis'), '暂无解析'),
+                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
                     })
         except Exception as e:
             st.error(f"加载 {book_name} 语料库 ({file_path}) 时出错: {e}")
@@ -235,7 +263,6 @@ with tab1:
     if not samples:
         st.warning("⚠️ 找不到任何语料库文件，请检查 CORPUS_CONFIG 中的路径是否正确！")
     else:
-        # === 第一排：基础搜索 ===
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             search_query = st.text_input("🔍 搜索句子内容（支持关键词）")
@@ -245,7 +272,6 @@ with tab1:
         with col3:
             filter_label = st.selectbox("🏷️ 基础类型", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
         
-        # === 第二排：高级细粒度筛选 ===
         filter_syntax, filter_cog, filter_conv, filter_form = "全部", "全部", "全部", "全部"
         
         if filter_label in ["全部", "仅隐喻 (Label 1)"]:
@@ -262,7 +288,6 @@ with tab1:
                 with c3: filter_conv = st.selectbox("⏳ 规约程度", ["全部"] + conv_opts)
                 with c4: filter_form = st.selectbox("🎭 表现形式", ["全部"] + form_opts)
 
-        # === 综合过滤逻辑 ===
         filtered_samples = samples
         if search_query:
             filtered_samples = [s for s in filtered_samples if search_query in s["Sentence"]]
@@ -282,6 +307,9 @@ with tab1:
         if filter_form != "全部":
             filtered_samples = [s for s in filtered_samples if s.get("Form_Features") == filter_form]
             
+        if filter_syntax == "全部" and filter_cog == "全部" and filter_conv == "全部" and filter_form == "全部":
+            filtered_samples.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
+            
         st.markdown(f"为您检索到 <span style='color:#3B82F6; font-weight:bold; font-size:16px;'>{len(filtered_samples)}</span> 条符合条件的语料。", unsafe_allow_html=True)
         st.divider()
 
@@ -293,21 +321,21 @@ with tab1:
             # ========== 1. 组装细粒度特征 Badge (顶格写，防止被Markdown解析为代码块) ==========
             badges_html = ""
             details_html = ""
-            if s["Label"] == 1 and s.get("Syntax_Type") != "未知":
+            if s["Label"] == 1:
                 badges_html = f"""<div style="margin-top: 8px;">
-<span class="attr-badge">📌 句法: {s['Syntax_Type']}</span>
-<span class="attr-badge">🧠 认知: {s['Cognitive_Type']}</span>
-<span class="attr-badge">⏳ 规约: {s['Conventionality']}</span>
-<span class="attr-badge">🎭 特征: {s['Form_Features']}</span>
+<span class="attr-badge">📌 句法: {s.get('Syntax_Type', '未知')}</span>
+<span class="attr-badge">🧠 认知: {s.get('Cognitive_Type', '未知')}</span>
+<span class="attr-badge">⏳ 规约: {s.get('Conventionality', '未知')}</span>
+<span class="attr-badge">🎭 特征: {s.get('Form_Features', '未知')}</span>
 </div>"""
 
                 details_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
 <b>🧬 Agent 4 细分类依据：</b><br/>
 <ul style="margin-top: 5px; color: #64748B; font-size: 13px;">
-<li style="margin-bottom: 4px;"><b>句法：</b>{s['Syntax_Analysis']}</li>
-<li style="margin-bottom: 4px;"><b>认知：</b>{s['Cognitive_Analysis']}</li>
-<li style="margin-bottom: 4px;"><b>规约：</b>{s['Conventionality_Analysis']}</li>
-<li><b>综合：</b>{s['Form_Analysis']}</li>
+<li style="margin-bottom: 4px;"><b>句法：</b>{s.get('Syntax_Analysis', '暂无解析')}</li>
+<li style="margin-bottom: 4px;"><b>认知：</b>{s.get('Cognitive_Analysis', '暂无解析')}</li>
+<li style="margin-bottom: 4px;"><b>规约：</b>{s.get('Conventionality_Analysis', '暂无解析')}</li>
+<li><b>综合：</b>{s.get('Form_Analysis', '暂无解析')}</li>
 </ul>
 </div>"""
                 
@@ -334,6 +362,18 @@ with tab1:
 </div>"""
                 except Exception:
                     pass 
+
+            # ========== 新增：组装“其他解释”的 UI 模块 ==========
+            other_exp_html = ""
+            if s.get("Other_Explanations"):
+                # 将多条解释组装成列表项
+                items_html = "".join([f"<li style='margin-bottom: 6px;'>{exp}</li>" for exp in s["Other_Explanations"]])
+                other_exp_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #FCD34D; background-color: #FEF3C7; padding: 12px; border-radius: 6px;">
+<b style="color: #D97706; font-size: 14px;">💡 其他专家/视角的解析补充：</b><br/>
+<ul style="margin-top: 8px; color: #92400E; font-size: 13px; padding-left: 20px;">
+{items_html}
+</ul>
+</div>"""
             
             # ========== 3. 渲染升级版 Sentence Card ==========
             st.markdown(f"""<div class="card">
@@ -347,6 +387,7 @@ with tab1:
 <b style="font-size: 14px; color: #475569;">基础判决逻辑：</b>
 {formatted_analysis}
 {details_html}
+{other_exp_html}
 </div>
 </details>
 </div>""", unsafe_allow_html=True)
