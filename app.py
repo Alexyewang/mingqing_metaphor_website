@@ -252,49 +252,53 @@ st.markdown("""
         z-index: 1000;
         backdrop-filter: blur(4px);
     }
-/* ================= 手机端首页菱形矩阵终极修复 ================= */
+/* ================= 手机端首页菱形矩阵完美修复 ================= */
     @media (max-width: 768px) {
-        /* 1. 强制左右两个按钮在手机上也保持水平横向，严禁堆叠 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"] {
+        /* 1. 强制列布局在手机上也不要垂直堆叠，保持水平横向 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] {
             display: flex !important;
-            flex-direction: row !important; 
+            flex-direction: row !important; /* 强制横向排列 */
             flex-wrap: nowrap !important;
-            gap: 10px !important; /* 菱形左右之间的缝隙 */
+            justify-content: center !important;
             width: 100% !important;
+            gap: 15px !important; /* 缩小间距适应小屏 */
         }
         
-        /* 2. 强制每一列平分宽度，消除 Streamlit 默认的最小宽度限制 */
+        /* 2. 确保两列各占一半宽度，不要撑开 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
             width: 50% !important;
-            flex: 1 1 auto !important;
             min-width: 0 !important;
+            flex: 1 1 auto !important;
         }
 
-        /* 3. 核心修复：大幅压缩上下两行（两个 stHorizontalBlock）之间的间距 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-            gap: 10px !important; /* 菱形上下之间的缝隙 */
-            width: 260px !important; /* 缩小整体容器宽度，防止旋转后超出屏幕 */
-            transform: rotate(45deg) scale(0.5) !important; /* 整体缩小 0.8 倍以适配小屏 */
-            margin: -20px auto 30px auto !important; /* 向上微调位置 */
-        }
-
-        /* 4. 按钮尺寸同步调小，确保在窄屏下不乱版 */
+        /* 3. 缩小按钮尺寸，防止在手机上因太大而导致排列变形 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
-            width: 110px !important; 
-            height: 110px !important;
+            width: 120px !important; 
+            height: 120px !important;
             border-radius: 30px !important;
         }
         
-        /* 5. 首页标题缩小，避免在手机端占据过多竖向空间 */
+        /* 4. 调整旋转容器的整体宽度和缩放 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
+            width: 260px !important;
+            transform: rotate(45deg) scale(0.85) !important; /* 稍微缩小整体比例 */
+            margin: 0 auto !important;
+            padding-bottom: 20px !important;
+        }
+
+        /* 5. 缩小按钮内的字号 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
+            font-size: 20px !important;
+        }
+
+        /* 其他移动端通用优化：缩小标题，隐藏多余间距 */
         .hero-title {
             font-size: 2.8rem !important;
             margin-top: 10vh !important;
             letter-spacing: 5px !important;
         }
-
-        /* 6. 隐藏手机端左下角访问量浮窗，避免遮挡按钮 */
-        .floating-stats {
-            display: none !important;
+        .main .block-container {
+            padding-top: 20px !important;
         }
     }
 </style>
