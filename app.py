@@ -193,7 +193,7 @@ st.markdown("""
         height: 160px !important;
         border-radius: 40px !important; /* 超大圆角 */
         box-shadow: 0 10px 25px rgba(0,0,0,0.06) !important;
-        border: 2px solid #1F2937 !important;
+        border: 2px solid #E5E7EB !important;
         background-color: rgba(255, 255, 255, 0.95) !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         padding: 0 !important;
