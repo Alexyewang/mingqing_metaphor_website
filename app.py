@@ -43,31 +43,30 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* ================= 顶部选项卡吸顶与居中 (核心修复) ================= */
-    div[data-testid="stTabs"] {
-        position: relative;
-    }
-    div[data-testid="stTabs"] > div:first-of-type {
+    /* ================= 绝对安全的选项卡吸顶与居中 ================= */
+    /* 仅针对 tab-list 施加控制，绝对不破坏底层的上下排版结构 */
+    [data-baseweb="tab-list"] {
         display: flex !important;
-        justify-content: center !important; /* 强制居中 */
+        justify-content: center !important;
         position: -webkit-sticky !important;
-        position: sticky !important; /* 吸顶属性 */
+        position: sticky !important;
         top: 0px !important;
-        z-index: 99999 !important; /* 保证在最上层 */
-        background-color: #FAF9F6 !important; /* 背景色防穿透 */
+        z-index: 99999 !important;
+        background-color: #FAF9F6 !important;
         padding-top: 15px !important;
-        padding-bottom: 15px !important;
+        padding-bottom: 10px !important;
         border-bottom: 2px solid #E5E7EB !important;
-        width: 100% !important;
     }
-    div[data-testid="stTabs"] button {
-        font-size: 22px !important; /* 选项卡字号大幅提升 */
+    [data-baseweb="tab"] {
+        font-size: 22px !important; 
         font-weight: 600 !important;
         color: #6B7280 !important;
         padding: 12px 24px !important;
-        margin: 0 15px !important; /* 增加选项卡间距 */
+        margin: 0 15px !important; 
+        border: none !important;
+        height: auto !important;
     }
-    div[data-testid="stTabs"] [aria-selected="true"] {
+    [aria-selected="true"] {
         color: #1E3A8A !important;
         border-bottom: 4px solid #1E3A8A !important;
     }
@@ -102,7 +101,7 @@ st.markdown("""
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
     .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
     
-    /* 左下角浮动访问量统计模块 */
+    /* ================= 左下角浮动访问量统计 ================= */
     .floating-stats {
         position: fixed;
         bottom: 25px;
@@ -155,7 +154,7 @@ def get_and_update_visit_count():
 def get_model_configs():
     try:
         return {
-            "Deepseek-V3 (推荐)": {
+            "Deepseek-V3.2(推荐)": {
                 "base_url": "https://api.deepseek.com",
                 "model_name": "deepseek-chat",
                 "env_key": st.secrets["deepseek_api_key"]
@@ -261,11 +260,12 @@ with tab_home:
 # ----------------- 选项卡 2: 关于 -----------------
 with tab_about:
     st.markdown("<br>", unsafe_allow_html=True)
-    # 使用纯净的列布局，不使用任何会干扰组件的 HTML div 包裹
+    
+    # 纯净的原生列布局，移除任何导致错位的 HTML 嵌套
     col_left_nav, col_right_content = st.columns([1, 4], gap="large")
     
     with col_left_nav:
-        st.markdown("<h3 style='color:#1F2937; margin-bottom: 20px;'>导航</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#1F2937; margin-bottom: 15px;'>📚 导航</h3>", unsafe_allow_html=True)
         about_nav = st.radio("关于导航", ["项目简介", "主要功能", "使用指南"], label_visibility="collapsed")
         
     with col_right_content:
@@ -277,8 +277,8 @@ with tab_about:
             st.markdown("""
             <div style='font-size:18px; line-height:1.8; color:#374151;'>
             <ul>
-            <li><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li>
-            <li><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li>
+            <li style='margin-bottom: 10px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li>
+            <li style='margin-bottom: 10px;'><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li>
             <li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li>
             </ul>
             </div>
@@ -287,7 +287,7 @@ with tab_about:
             st.markdown("""
             <div style='font-size:18px; line-height:1.8; color:#374151;'>
             <ol>
-            <li>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li>
+            <li style='margin-bottom: 10px;'>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li>
             <li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li>
             </ol>
             </div>
@@ -295,7 +295,7 @@ with tab_about:
 
 # ----------------- 选项卡 3: 语料检索 -----------------
 with tab_corpus:
-    st.markdown("<br><h2 style='text-align:center; color:#1F2937; margin-bottom:30px;'>明清小说隐喻语料库</h2>", unsafe_allow_html=True)
+    st.markdown("<br><h2 style='text-align:center; color:#1F2937; margin-bottom:40px;'>明清小说隐喻语料库</h2>", unsafe_allow_html=True)
     samples = load_all_corpora()
     
     if not samples:
@@ -471,11 +471,11 @@ with tab_corpus:
 with tab_online:
     st.markdown("<br><h2 style='text-align:center; color:#1F2937; margin-bottom:30px;'>多智能体隐喻在线识别</h2>", unsafe_allow_html=True)
     
-    # 使用纯原生布局，坚决不用 HTML div 包裹组件
+    # 同样剥离所有会导致错位的 HTML 嵌套包裹，直接使用纯净的原生 Streamlit Columns 布局
     col_model_select, col_main_action = st.columns([1, 4], gap="large")
     
     with col_model_select:
-        st.markdown("<h3 style='color:#1F2937; margin-bottom: 20px;'>⚙️ 引擎配置</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#1F2937; margin-bottom: 15px;'>⚙️ 引擎配置</h3>", unsafe_allow_html=True)
         selected_model = st.selectbox("核心大模型", list(MODEL_CONFIGS.keys()), index=0)
         use_proxy = st.checkbox("启用海外代理", value=False)
 
