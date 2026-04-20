@@ -58,7 +58,7 @@ st.markdown("""
         color: #374151;
     }
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
-        font-size: 20px !important;
+        font-size: 18px !important;
         padding: 12px !important;
     }
     
