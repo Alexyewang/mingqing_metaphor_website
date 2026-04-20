@@ -9,10 +9,11 @@ import time
 import re
 import os
 import datetime
-# ================= 1. 页面与专业 UI 配置 =================
+from supabase import create_client, Client
+
+# UI 配置
 st.set_page_config(page_title="明清小说隐喻语料库与多智能体隐喻在线识别", layout="wide", page_icon="📚")
 
-# 注入自定义 CSS 复刻现代学术风 UI
 st.markdown("""
 <style>
     .main {background-color: #F9FAFB;}
@@ -42,21 +43,14 @@ st.markdown("""
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
 </style>
 """, unsafe_allow_html=True)
-# ================= 0. 访问量统计模块 =================
+
+# 访问量统计
 VISIT_COUNTER_FILE = "./dataset/visit_count.json"
 
 def get_and_update_visit_count():
-    """
-    读取并更新访问量。
-    利用 st.session_state 确保每个浏览器会话（Session）只算作一次有效访问，
-    防止因 Streamlit 的组件交互重载导致访问量暴增。
-    """
-    # 如果当前会话是第一次加载页面
     if 'has_visited' not in st.session_state:
         st.session_state.has_visited = True
         count = 0
-        
-        # 1. 读取历史访问量
         if os.path.exists(VISIT_COUNTER_FILE):
             try:
                 with open(VISIT_COUNTER_FILE, "r", encoding="utf-8") as f:
@@ -64,21 +58,14 @@ def get_and_update_visit_count():
                     count = data.get("total_visits", 0)
             except Exception:
                 count = 0
-                
-        # 2. 访问量 +1
         count += 1
-        
-        # 3. 写回文件
         try:
             with open(VISIT_COUNTER_FILE, "w", encoding="utf-8") as f:
                 json.dump({"total_visits": count}, f)
         except Exception as e:
-            pass # 忽略无权限等写入错误
-            
+            pass 
         return count
-        
     else:
-        # 如果在这个会话中页面发生重载（比如点击了分析按钮），只读取，不增加计数
         if os.path.exists(VISIT_COUNTER_FILE):
             try:
                 with open(VISIT_COUNTER_FILE, "r", encoding="utf-8") as f:
@@ -87,9 +74,9 @@ def get_and_update_visit_count():
             except Exception:
                 return 0
         return 0
-# ================= 2. 模型配置 (使用 Streamlit Secrets) =================
+
+# 模型与数据库配置
 def get_model_configs():
-    """从 Streamlit Secrets 读取 API 密钥"""
     try:
         return {
             "Deepseek-V3.2": {
@@ -115,41 +102,62 @@ def get_model_configs():
 MODEL_CONFIGS = get_model_configs()
 
 CORPUS_CONFIG = {
-    "红楼梦": "./dataset/500.xml",          # 你原有的 XML 文件
-    "西游记": "./dataset/xiyouji.csv",      # 新增的 CSV 示例
-    "水浒传": "./dataset/shuihuzhuan.csv",  # 新增的 CSV 示例
-    "三国演义": "./dataset/sanguo.csv",      # 新增的 CSV 示例
+    "红楼梦": "./dataset/500.xml",         
+    "西游记": "./dataset/xiyouji.csv",      
+    "水浒传": "./dataset/shuihuzhuan.csv",  
+    "三国演义": "./dataset/sanguo.csv",      
     "金瓶梅":"./dataset/jinpingmei.csv",
     "儒林外史": "./dataset/rulinwaishi.csv",
 }
 
-@st.cache_data
+# 初始化 Supabase
+@st.cache_resource
+def init_supabase() -> Client:
+    """初始化并缓存 Supabase 客户端，防止重复连接"""
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"⚠️ 无法连接到 Supabase 数据库。请检查 Secrets 里的配置: {e}")
+        return None
+
+# 云端存储
 def save_feedback(book, sentence, orig_label, orig_analysis, new_label, new_analysis):
+    """将反馈数据安全地插入到 Supabase 云数据库中"""
+    supabase = init_supabase()
+    if not supabase:
+        return False
+        
     now = datetime.datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
-    feedback_file = f"./dataset/feedback_{date_str}.csv"
     
-    new_record = pd.DataFrame([{
-        "Date": date_str, "Time": time_str, "Book": book, "Sentence": sentence,
-        "Original_Label": orig_label, "Original_Analysis": orig_analysis,
-        "Suggested_Label": new_label, "Suggested_Analysis": new_analysis
-    }])
+    # 构建要插入的数据字典 (键名需与 Supabase 表的列名完全一致)
+    data = {
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+        "book": book,
+        "sentence": sentence,
+        "original_label": int(orig_label),
+        "original_analysis": orig_analysis,
+        "suggested_label": int(new_label),
+        "suggested_analysis": new_analysis
+    }
     
-    # 存入每日专属 CSV 中，采用 utf-8-sig 防止 Excel 打开中文乱码
-    if os.path.exists(feedback_file):
-        new_record.to_csv(feedback_file, mode='a', header=False, index=False, encoding='utf-8-sig')
-    else:
-        new_record.to_csv(feedback_file, mode='w', header=True, index=False, encoding='utf-8-sig')
+    try:
+        supabase.table("feedback").insert(data).execute()
+        return True
+    except Exception as e:
+        st.error(f"写入云数据库失败: {e}")
+        return False
+
+@st.cache_data
 def load_all_corpora():
     all_samples = []
-    
     for book_name, file_path in CORPUS_CONFIG.items():
         if not os.path.exists(file_path):
-            continue # 如果文件不存在则跳过，防止报错
+            continue 
             
         try:
-            # 处理 XML 格式
             if file_path.endswith('.xml'):
                 tree = ET.parse(file_path)
                 root = tree.getroot()
@@ -161,8 +169,6 @@ def load_all_corpora():
                         "Label": int(node.find('Label').text) if node.find('Label') is not None else 0,
                         "Analysis": analysis_node.text.strip() if analysis_node is not None else "暂无解析"
                     })
-            
-            # 处理 CSV 格式
             elif file_path.endswith('.csv'):
                 df = pd.read_csv(file_path)
                 for _, row in df.iterrows():
@@ -176,30 +182,27 @@ def load_all_corpora():
             st.error(f"加载 {book_name} 语料库 ({file_path}) 时出错: {e}")
             
     return all_samples
+
 def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=3):
-    # 仅从 Label 为 1 (隐喻) 且不是当前句子的语料中寻找
     metaphor_pool = [s for s in samples_pool if s['Label'] == 1 and s['Sentence'] != target_sentence]
     if not metaphor_pool or not target_analysis:
         return []
     
-    # 定义简单的中文停用词，提升匹配精准度
     stop_chars = set("的了和是就在也不有与为以对于这那，。！？：；“”‘’（）《》、 \n\t比喻修辞本体喻体")
-    
     target_set = set(target_analysis) - stop_chars
-    if not target_set: return metaphor_pool[:top_k] # 如果分析为空，随机返回
+    if not target_set: return metaphor_pool[:top_k] 
     
     scored_items = []
     for s in metaphor_pool:
         compare_set = set(s['Analysis']) - stop_chars
         if not compare_set:
             continue
-        # Jaccard 相似度计算交并比
         score = len(target_set & compare_set) / len(target_set | compare_set)
         scored_items.append((score, s))
         
-    # 按相似度降序排列并取前 K 个
     scored_items.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_items[:top_k]]
+
 def merge_debug_to_corpus():
     debug_path = "./dataset/debug.csv"
     if not os.path.exists(debug_path):
@@ -208,7 +211,6 @@ def merge_debug_to_corpus():
         
     try:
         df_debug = pd.read_csv(debug_path)
-        # 验证必要的列是否存在
         required_cols = {'Book', 'Sentence', 'Suggested_Label', 'Suggested_Analysis'}
         if not required_cols.issubset(df_debug.columns):
             st.sidebar.error(f"debug.csv 缺少必要的列！请确保包含: {required_cols}")
@@ -222,11 +224,9 @@ def merge_debug_to_corpus():
                 
             target_file = CORPUS_CONFIG[book_name]
             
-            # 1. 更新 CSV 格式语料
             if target_file.endswith('.csv'):
                 df_target = pd.read_csv(target_file) if os.path.exists(target_file) else pd.DataFrame(columns=['Sentence', 'Label', 'Analysis'])
                 for _, row in group.iterrows():
-                    # 基于句子内容进行匹配，存在则覆盖，不存在则追加
                     match_idx = df_target.index[df_target['Sentence'] == row['Sentence']].tolist()
                     if match_idx:
                         df_target.loc[match_idx[0], 'Label'] = int(row['Suggested_Label'])
@@ -237,7 +237,6 @@ def merge_debug_to_corpus():
                 df_target.to_csv(target_file, index=False, encoding='utf-8-sig')
                 success_count += len(group)
                 
-            # 2. 更新 XML 格式语料
             elif target_file.endswith('.xml'):
                 if not os.path.exists(target_file):
                     root = ET.Element("dataset")
@@ -265,15 +264,13 @@ def merge_debug_to_corpus():
                 tree.write(target_file, encoding='utf-8', xml_declaration=True)
                 success_count += len(group)
 
-        # 合并完成后，将 debug.csv 重命名备份，防止重复合并
         backup_name = f"./dataset/debug_processed_{int(time.time())}.csv"
         os.rename(debug_path, backup_name)
-        st.sidebar.success(f"✅ 合并成功！更新了 {success_count} 条语料。已将 debug.csv 备份为 {backup_name.split('/')[-1]}")
-        
-        # 清除缓存强制页面刷新数据
+        st.sidebar.success(f"合并成功！更新了 {success_count} 条语料。已将 debug.csv 备份为 {backup_name.split('/')[-1]}")
         load_all_corpora.clear()
     except Exception as e:
         st.sidebar.error(f"合并过程中发生错误: {e}")
+
 # ================= 4. 侧边栏设计 =================
 with st.sidebar:
     st.title("🏛️ 古籍隐喻计算平台")
@@ -292,15 +289,6 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     st.divider()
     st.caption("© 多智能体隐喻在线识别")
-    
-    # # ⭐ 新增：开发者与语料库维护专区
-    # st.subheader("🛠️ 语料库自动化维护")
-    # st.caption("将人工审查完毕的 `debug.csv` 一键分配写入对应的语料库文件中。")
-    # if st.button("🚀 将 debug.csv 合并至主语料库", use_container_width=True):
-    #     merge_debug_to_corpus()
-        
-    # st.divider()
-    # st.caption("© 多智能体隐喻识别")
 
 # ================= 5. 主页面双 Tab 设计 =================
 tab1, tab2 = st.tabs(["🔍 语料检索 (Corpus Explorer)", "🤖 在线识别 (Online Metaphor Recognition)"])
@@ -314,18 +302,15 @@ with tab1:
     if not samples:
         st.warning("⚠️ 找不到任何语料库文件，请检查 CORPUS_CONFIG 中的路径是否正确！")
     else:
-        # 修改点 1: 增加书籍筛选列 (三列布局)
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             search_query = st.text_input("搜索句子内容（可以使用关键词搜索）")
         with col2:
-            # 动态获取当前成功加载的书籍列表
             available_books = sorted(list(set(s["Book"] for s in samples)))
             filter_book = st.selectbox("书籍筛选", ["全部"] + available_books)
         with col3:
             filter_label = st.selectbox("类型筛选", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
         
-        # 修改点 2: 综合过滤逻辑
         filtered_samples = samples
         
         if search_query:
@@ -341,8 +326,7 @@ with tab1:
             
         st.caption(f"为您检索到 **{len(filtered_samples)}** 条高质量语料。")
         
-        # 修改点 3: 渲染学术卡片，动态显示书籍来源
-        for s in filtered_samples[:50]: # 前端限流展示前 50 条
+        for s in filtered_samples[:50]:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
             tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
             
@@ -357,25 +341,25 @@ with tab1:
                 </details>
             </div>
             """, unsafe_allow_html=True)
-            # ⭐ 新增：用户交互纠正表单
+            
             with st.expander("✍️ 发现错误？提交更正意见"):
                 with st.form(key=f"feedback_form_{s}"):
                     new_label = st.radio("正确的 Label 应该是：", options=[0, 1], index=s['Label'], horizontal=True)
                     new_analysis = st.text_area("您认为更合理的解析：", value=s['Analysis'])
-                    submit_btn = st.form_submit_button("提交反馈")
+                    submit_btn = st.form_submit_button("安全提交至云端")
                     
                     if submit_btn:
-                        save_feedback(s['Book'], s['Sentence'], s['Label'], s['Analysis'], new_label, new_analysis)
-                        st.success("✅ 感谢提交！您的意见已保存至当日记录表。")
+                        is_success = save_feedback(s['Book'], s['Sentence'], s['Label'], s['Analysis'], new_label, new_analysis)
+                        if is_success:
+                            st.success("✅ 提交成功！您的意见已安全送达 Supabase 云数据库。")
             
-            st.write("") # 卡片间距
+            st.write("") 
 
 # ----------------- Tab 2: 算法靶场 -----------------
 with tab2:
     st.header("多智能体隐喻在线识别")
     st.markdown("输入任意明清小说语句，观察 **语义提取 (Agent 1) ➔ 考证推理 (Agent 2) ➔ 逻辑审核 (Agent 3)** 的推理全过程。")
     
-    # 修改点 1: 增加两列布局，左侧输入句子，右侧输入目标书籍
     col_text, col_book = st.columns([3, 1])
     with col_text:
         test_sentence = st.text_area("输入测试句子：", value="忽听山石之后有一人笑道：“且请留步”", height=100)
@@ -385,19 +369,15 @@ with tab2:
     run_btn = st.button("🚀 运行交叉反射分析 (Run Analysis)", type="primary")
     
     if run_btn:
-        # 修改点 2: 处理书籍缺省逻辑
         book_context = target_book.strip() if target_book.strip() else "明清小说"
         
-        # 初始化 API 客户端
         config = MODEL_CONFIGS[selected_model]
         http_client = httpx.Client(proxy="http://127.0.0.1:7890") if use_proxy else None
         client = OpenAI(api_key=config["env_key"], base_url=config["base_url"], http_client=http_client)
         
         st.divider()
         
-        # ================= 动态可视化: 阶段一 =================
         with st.status("🕵️‍♂️ Agent 1 (语义提纯) 正在分析表层结构...", expanded=True) as status1:
-            # 修改点 3: 将 Prompt 1 中的书籍背景动态化
             prompt1 = f"""这是《{book_context}》中的句子。
                             你是语言学的专家，你有两个任务：
                             - 分析句子含义，不要过度解读。
@@ -424,9 +404,7 @@ with tab2:
                 st.error(f"Agent 1 失败: {e}")
                 st.stop()
 
-        # ================= 动态可视化: 阶段二 =================
         with st.status("⚖️ Agent 2 (跨域推理) 正在进行深度隐喻考证...", expanded=True) as status2:
-            # 修改点 4: 将 Prompt 2 中的书籍背景动态化
             prompt2 = f"""这是《{book_context}》中的句子。
 参考我提供给你的句子含义，以及可能用到比喻修辞的词（不一定真的有比喻），判断句子是否包含比喻修辞。注意结合比喻的定义和《{book_context}》相关知识，不要过度解读。
 请严格返回JSON格式：{{ "label": 1, "analysis": "理由"}}
@@ -454,9 +432,7 @@ with tab2:
                 st.error(f"Agent 2 失败: {e}")
                 st.stop()
 
-        # ================= 动态可视化: 阶段三 =================
         with st.status("👨‍⚖️ Agent 3 (逻辑裁判) 正在生成最终决议...", expanded=True) as status3:
-            # 阶段三主要是逻辑判决，不需要修改语境，维持原样即可
             prompt3 = f"""检查【报告】的分析和得到的结论是否矛盾。如果矛盾则根据【报告】的分析修正结果。如果句子中含有比喻输出label 1，否则输出0。报告: "{reason2}"
             请严格返回JSON格式：{{"label": 1或0, "analysis": "最终判决理由"}}"""
             
@@ -478,13 +454,12 @@ with tab2:
                 status3.update(label="✅ Agent 3 (逻辑裁判) 完成！", state="complete", expanded=True)
             except Exception as e:
                 st.error(f"Agent 3 失败: {e}")
-        # ⭐ 新增：靶场完成裁决后，如果是隐喻，自动检索库中类似案例
+                
         if final_label == 1:
             st.subheader("💡 基于当前分析逻辑的关联推荐")
             st.caption("AI 自动将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
             samples = load_all_corpora()
             if samples:
-                # 使用 Agent 2 的 reason2 或者 Agent 3 的 final_reason 进行匹配
                 sim_matches = get_similar_metaphors(reason2, test_sentence, samples, top_k=3)
                 if sim_matches:
                     for sim in sim_matches:
