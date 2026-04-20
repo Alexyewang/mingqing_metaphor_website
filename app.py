@@ -30,7 +30,6 @@ st.markdown("""
         background-color: #F3F4F6; color: #4B5563; padding: 4px 10px;
         border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
     }
-    /* 新增：细粒度特征徽章样式 */
     .attr-badge {
         background-color: #EEF2FF; color: #4338CA; padding: 4px 10px;
         border-radius: 6px; font-size: 12px; font-weight: 500; 
@@ -131,7 +130,6 @@ def init_supabase() -> Client:
 
 # ================= 3. 核心功能函数 =================
 def save_feedback(data_dict):
-    """保存包含新分类维度的反馈到 Supabase"""
     supabase = init_supabase()
     if not supabase: return False
     
@@ -148,14 +146,12 @@ def save_feedback(data_dict):
 
 @st.cache_data
 def load_all_corpora():
-    """全面升级：支持加载细粒度分类维度"""
     all_samples = []
     for book_name, file_path in CORPUS_CONFIG.items():
         if not os.path.exists(file_path):
             continue 
             
         try:
-            # XML 暂未加入细分类解析，保持兼容
             if file_path.endswith('.xml'):
                 tree = ET.parse(file_path)
                 root = tree.getroot()
@@ -171,17 +167,14 @@ def load_all_corpora():
                         "Syntax_Analysis": "", "Cognitive_Analysis": "",
                         "Conventionality_Analysis": "", "Form_Analysis": ""
                     })
-            
-            # CSV 全面支持新生成的带有 13 列的数据
             elif file_path.endswith('.csv'):
                 df = pd.read_csv(file_path)
                 for _, row in df.iterrows():
                     all_samples.append({
                         "Book": book_name,
                         "Sentence": str(row.get('Sentence', '')).strip(),
-                        "Label": int(row.get('Pred_Label', row.get('Label', 0))), # 兼容 Pred_Label
+                        "Label": int(row.get('Pred_Label', row.get('Label', 0))), 
                         "Analysis": str(row.get('Analysis', '暂无解析')).strip(),
-                        # 细分类提取 (带有容错机制)
                         "Syntax_Type": str(row.get('syntax_type', '未知')).strip(),
                         "Syntax_Analysis": str(row.get('syntax_analysis', '')).strip(),
                         "Cognitive_Type": str(row.get('cognitive_type', '未知')).strip(),
@@ -252,15 +245,12 @@ with tab1:
         with col3:
             filter_label = st.selectbox("🏷️ 基础类型", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
         
-        # === 第二排：高级细粒度筛选 (默认全部，仅在查隐喻时展开更有意义) ===
+        # === 第二排：高级细粒度筛选 ===
         filter_syntax, filter_cog, filter_conv, filter_form = "全部", "全部", "全部", "全部"
         
-        # 当不限定只查非隐喻时，展示高级筛选面板
         if filter_label in ["全部", "仅隐喻 (Label 1)"]:
             with st.expander("🔬 细粒度特征筛选 (高级搜索)"):
                 st.caption("基于多智能体深度判定的特征进行交叉检索：")
-                
-                # 动态从当前加载的语料中提取所有非空、非"未知"的选项，避免写死导致选项为空
                 syn_opts = sorted(list(set(s.get("Syntax_Type", "") for s in samples if s.get("Label")==1 and s.get("Syntax_Type") not in ["", "未知"])))
                 cog_opts = sorted(list(set(s.get("Cognitive_Type", "") for s in samples if s.get("Label")==1 and s.get("Cognitive_Type") not in ["", "未知"])))
                 conv_opts = sorted(list(set(s.get("Conventionality", "") for s in samples if s.get("Label")==1 and s.get("Conventionality") not in ["", "未知"])))
@@ -272,10 +262,8 @@ with tab1:
                 with c3: filter_conv = st.selectbox("⏳ 规约程度", ["全部"] + conv_opts)
                 with c4: filter_form = st.selectbox("🎭 表现形式", ["全部"] + form_opts)
 
-        # === 综合过滤逻辑流水线 ===
+        # === 综合过滤逻辑 ===
         filtered_samples = samples
-        
-        # 1. 基础文本与分类过滤
         if search_query:
             filtered_samples = [s for s in filtered_samples if search_query in s["Sentence"]]
         if filter_book != "全部":
@@ -285,7 +273,6 @@ with tab1:
         elif filter_label == "非隐喻 (Label 0)":
             filtered_samples = [s for s in filtered_samples if s["Label"] == 0]
             
-        # 2. 细粒度特征过滤 (层层递进的交集筛选)
         if filter_syntax != "全部":
             filtered_samples = [s for s in filtered_samples if s.get("Syntax_Type") == filter_syntax]
         if filter_cog != "全部":
@@ -295,90 +282,106 @@ with tab1:
         if filter_form != "全部":
             filtered_samples = [s for s in filtered_samples if s.get("Form_Features") == filter_form]
             
-        # 显示结果计数
         st.markdown(f"为您检索到 <span style='color:#3B82F6; font-weight:bold; font-size:16px;'>{len(filtered_samples)}</span> 条符合条件的语料。", unsafe_allow_html=True)
         st.divider()
-        
+
+        # ========== 下方渲染卡片的逻辑 ==========
         for s in filtered_samples[:50]:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
             tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
             
-            # ========== 新增：组装细粒度特征 Badge 的 HTML ==========
+            # ========== 1. 组装细粒度特征 Badge (顶格写，防止被Markdown解析为代码块) ==========
             badges_html = ""
             details_html = ""
             if s["Label"] == 1 and s.get("Syntax_Type") != "未知":
-                badges_html = f"""
-                <div style="margin-top: 8px;">
-                    <span class="attr-badge">📌 句法: {s['Syntax_Type']}</span>
-                    <span class="attr-badge">🧠 认知: {s['Cognitive_Type']}</span>
-                    <span class="attr-badge">⏳ 规约: {s['Conventionality']}</span>
-                    <span class="attr-badge">🎭 特征: {s['Form_Features']}</span>
-                </div>
-                """
-                details_html = f"""
-                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
-                    <b>细粒度特征判定依据：</b><br/>
-                    <ul style="margin-top: 5px; color: #64748B;">
-                        <li><b>句法视角：</b>{s['Syntax_Analysis']}</li>
-                        <li><b>认知视角：</b>{s['Cognitive_Analysis']}</li>
-                        <li><b>规约视角：</b>{s['Conventionality_Analysis']}</li>
-                        <li><b>综合特征：</b>{s['Form_Analysis']}</li>
-                    </ul>
-                </div>
-                """
+                badges_html = f"""<div style="margin-top: 8px;">
+<span class="attr-badge">📌 句法: {s['Syntax_Type']}</span>
+<span class="attr-badge">🧠 认知: {s['Cognitive_Type']}</span>
+<span class="attr-badge">⏳ 规约: {s['Conventionality']}</span>
+<span class="attr-badge">🎭 特征: {s['Form_Features']}</span>
+</div>"""
+
+                details_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
+<b>🧬 Agent 4 细分类依据：</b><br/>
+<ul style="margin-top: 5px; color: #64748B; font-size: 13px;">
+<li style="margin-bottom: 4px;"><b>句法：</b>{s['Syntax_Analysis']}</li>
+<li style="margin-bottom: 4px;"><b>认知：</b>{s['Cognitive_Analysis']}</li>
+<li style="margin-bottom: 4px;"><b>规约：</b>{s['Conventionality_Analysis']}</li>
+<li><b>综合：</b>{s['Form_Analysis']}</li>
+</ul>
+</div>"""
+                
+            # ========== 2. 美化三审核心解析字符串 ==========
+            raw_analysis = s['Analysis']
+            formatted_analysis = raw_analysis 
             
-            # ========== 渲染升级版 Sentence Card ==========
-            st.markdown(f"""
-            <div class="card">
-                <span class="{tag_class}">{tag_text}</span>
-                <span style="font-size: 12px; color: #64748B;">来源: 《{s['Book']}》</span>
-                {badges_html}
-                <div class="sentence" style="margin-top: 10px;">{s['Sentence']}</div>
-                <details>
-                    <summary style="cursor: pointer; color: #3B82F6; font-size: 14px; font-weight: 500;">展开查看多维专家解析</summary>
-                    <div class="analysis-box">
-                        <b>核心解析：</b><br/>
-                        {s['Analysis']}
-                        {details_html}
-                    </div>
-                </details>
-            </div>
-            """, unsafe_allow_html=True)
+            if "【一审】" in raw_analysis and "【二审】" in raw_analysis and "【终审】" in raw_analysis:
+                try:
+                    p1 = raw_analysis.split("【一审】:")[1].split("| 【二审】:")[0].strip()
+                    p2 = raw_analysis.split("【二审】:")[1].split("| 【终审】:")[0].strip()
+                    p3 = raw_analysis.split("【终审】:")[1].strip()
+                    
+                    formatted_analysis = f"""<div style="margin-top: 5px;">
+<div style="background-color: #EFF6FF; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3B82F6; margin-bottom: 8px; font-size: 13px;">
+<b style="color: #1E3A8A;">🕵️‍♂️ Agent 1 (语义)：</b> {p1}
+</div>
+<div style="background-color: #FFF7ED; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #F97316; margin-bottom: 8px; font-size: 13px;">
+<b style="color: #9A3412;">⚖️ Agent 2 (推理)：</b> {p2}
+</div>
+<div style="background-color: #ECFDF5; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #10B981; font-size: 13px;">
+<b style="color: #065F46;">👨‍⚖️ Agent 3 (裁判)：</b> {p3}
+</div>
+</div>"""
+                except Exception:
+                    pass 
             
-            # ========== 升级版反馈表单 ==========
+            # ========== 3. 渲染升级版 Sentence Card ==========
+            st.markdown(f"""<div class="card">
+<span class="{tag_class}">{tag_text}</span>
+<span style="font-size: 12px; color: #64748B;">来源: 《{s['Book']}》</span>
+{badges_html}
+<div class="sentence" style="margin-top: 10px;">{s['Sentence']}</div>
+<details>
+<summary style="cursor: pointer; color: #3B82F6; font-size: 14px; font-weight: 500;">展开查看多维专家解析</summary>
+<div class="analysis-box" style="padding-top: 10px;">
+<b style="font-size: 14px; color: #475569;">基础判决逻辑：</b>
+{formatted_analysis}
+{details_html}
+</div>
+</details>
+</div>""", unsafe_allow_html=True)
+            
+            # ========== 4. 反馈表单 ==========
             with st.expander("✍️ 发现错误？提交更正意见"):
                 with st.form(key=f"feedback_form_{s['Sentence'][:10]}_{hash(s['Sentence'])}"):
                     new_label = st.radio("正确的大类标签：", options=[0, 1], index=s['Label'], horizontal=True)
-                    new_analysis = st.text_area("整体解析意见：", value=s['Analysis'], height=80)
+                    new_analysis = st.text_area("整体解析意见：", value=raw_analysis, height=80) 
                     
-                    # 针对隐喻的细粒度纠错框
-                    new_syntax = s['Syntax_Type']
-                    new_cog = s['Cognitive_Type']
-                    new_conv = s['Conventionality']
-                    new_form = s['Form_Features']
+                    new_syntax = s.get('Syntax_Type', '未知')
+                    new_cog = s.get('Cognitive_Type', '未知')
+                    new_conv = s.get('Conventionality', '未知')
+                    new_form = s.get('Form_Features', '未知')
                     
                     if s['Label'] == 1:
                         st.caption("🔽 细粒度分类修正 (选填)")
                         col_f1, col_f2 = st.columns(2)
                         with col_f1:
-                            new_syntax = st.text_input("句法类型", value=s['Syntax_Type'])
-                            new_cog = st.text_input("认知视角", value=s['Cognitive_Type'])
+                            new_syntax = st.text_input("句法类型", value=new_syntax)
+                            new_cog = st.text_input("认知视角", value=new_cog)
                         with col_f2:
-                            new_conv = st.text_input("规约程度", value=s['Conventionality'])
-                            new_form = st.text_input("表现形式", value=s['Form_Features'])
+                            new_conv = st.text_input("规约程度", value=new_conv)
+                            new_form = st.text_input("表现形式", value=new_form)
                             
                     submit_btn = st.form_submit_button("安全提交至云端")
                     
                     if submit_btn:
-                        # 组装完整的字典提交
                         feedback_data = {
                             "book": s['Book'],
                             "sentence": s['Sentence'],
                             "original_label": int(s['Label']),
-                            "original_analysis": s['Analysis'],
+                            "original_analysis": raw_analysis,
                             "suggested_label": int(new_label),
                             "suggested_analysis": new_analysis,
-                            # 新增字段
                             "syntax_type": new_syntax,
                             "cognitive_type": new_cog,
                             "conventionality": new_conv,
@@ -410,7 +413,6 @@ with tab2:
         
         st.divider()
         
-        # ================= Agent 1 =================
         with st.status("🕵️‍♂️ Agent 1 (语义提取) 正在分析表层结构...", expanded=True) as status1:
             prompt1 = f"""这是《{book_context}》中的句子。
                             你是语言学的专家，你有两个任务：
@@ -438,7 +440,6 @@ with tab2:
                 st.error(f"Agent 1 失败: {e}")
                 st.stop()
 
-        # ================= Agent 2 =================
         with st.status("⚖️ Agent 2 (推理) 正在进行深度隐喻考证...", expanded=True) as status2:
             prompt2 = f"""这是《{book_context}》中的句子。
 参考我提供给你的句子含义，以及可能用到比喻修辞的词（不一定真的有比喻），判断句子是否包含比喻修辞。注意结合比喻的定义和《{book_context}》相关知识，不要过度解读。
@@ -467,7 +468,6 @@ with tab2:
                 st.error(f"Agent 2 失败: {e}")
                 st.stop()
 
-        # ================= Agent 3 =================
         with st.status("👨‍⚖️ Agent 3 (逻辑审核) 正在生成最终决议...", expanded=True) as status3:
             prompt3 = f"""检查【报告】的分析和得到的结论是否矛盾。如果矛盾则根据【报告】的分析修正结果。如果句子中含有比喻输出label 1，否则输出0。报告: "{reason2}"
             请严格返回JSON格式：{{"label": 1或0, "analysis": "最终判决理由"}}"""
@@ -491,7 +491,6 @@ with tab2:
             except Exception as e:
                 st.error(f"Agent 3 失败: {e}")
                 
-        # ================= Agent 4 =================
         if final_label == 1:
             with st.status("🧬 Agent 4 (多维度分类) 独立专家团正在进行细粒度特征判定...", expanded=True) as status4:
                 category_tasks = [
@@ -534,7 +533,6 @@ with tab2:
                 st.markdown('</div>', unsafe_allow_html=True)
                 status4.update(label="✅ Agent 4 (多维度分类) 完成！", state="complete", expanded=True)
 
-            # 关联推荐模块
             st.subheader("💡 基于当前分析逻辑的关联推荐")
             st.caption("将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
             samples = load_all_corpora()
