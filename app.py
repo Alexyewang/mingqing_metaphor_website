@@ -115,15 +115,23 @@ st.markdown("""
         /* --- 🚀 核心黑科技修复：手机端菱形强制拼合 (CSS Grid + 容器穿透) --- */
         
         /* 1. 将根容器设为严格的 2x2 网格阵列，钉死宽高 */
+/* --- 🚀 核心修复：手机端菱形间距平衡化 --- */
+        
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             display: grid !important;
-            grid-template-columns: 114px 114px !important; /* 精确的两列 */
-            grid-template-rows: 114px 114px !important;    /* 精确的两行 */
-            gap: 12px !important;                          /* 菱形间的完美缝隙 */
-            width: 240px !important;
-            height: 240px !important;
+            grid-template-columns: 90px 90px !important; 
+            grid-template-rows: 90px 90px !important;    
+            
+            /* 精准调节间距： */
+            column-gap: 22px !important;  /* 增加横向间距 (右上到左下) */
+            row-gap: 2px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
+            
+            /* 同步微调容器总宽高 (114*2 + 间距) */
+            width: 242px !important;
+            height: 230px !important; 
+            
             margin: 20px auto 50px auto !important;
-            transform: rotate(45deg) !important;           /* 保留旋转 */
+            transform: rotate(45deg) !important;           
             padding: 0 !important;
         }
 
