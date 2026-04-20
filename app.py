@@ -54,17 +54,17 @@ st.markdown("""
 
     /* ================= 1. 全局字号放大，告别拘谨 ================= */
     .stMarkdown p, .stRadio label, .stSelectbox label, .stCheckbox label, .stTextInput label, .stTextArea label {
-        font-size: 18px !important;
+        font-size: 22px !important;
         color: #374151;
     }
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
-        font-size: 18px !important;
+        font-size: 22px !important;
         padding: 12px !important;
     }
     
     /* 普通按钮放大 */
     .stButton>button {
-        font-size: 18px !important;
+        font-size: 22px !important;
         font-weight: bold !important;
         padding: 10px 24px !important;
         border-radius: 8px !important;
