@@ -12,7 +12,7 @@ import datetime
 from supabase import create_client, Client
 
 # ================= 1. 页面配置与全局 CSS =================
-st.set_page_config(page_title="明清典籍隐喻计算平台", layout="wide", page_icon="📚")
+st.set_page_config(page_title="明清文学隐喻智能分析平台", layout="wide", page_icon="📚")
 
 # 初始化页面路由状态
 if 'page' not in st.session_state:
