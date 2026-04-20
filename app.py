@@ -466,8 +466,8 @@ elif st.session_state.page == 'about':
                 <div style='font-size:20px; line-height:2.0; color:#374151;'>
                 <ul>
                 <li style='margin-bottom: 15px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li>
-                <li style='margin-bottom: 15px;'><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li>
-                <li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li>
+                <li style='margin-bottom: 15px;'><b>多智能体在线识别</b>：通过语义提取、考证推理、逻辑审核三步完成自动隐喻识别。</li>
+                <li><b>自动特征分类与专家共创</b>：支持用户反馈、纠错以及多元化理解。</li>
                 </ul>
                 </div>
                 """, unsafe_allow_html=True)
