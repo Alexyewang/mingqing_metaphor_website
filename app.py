@@ -226,13 +226,13 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 24px;
         border: 1px solid #E5E7EB; border-left: 6px solid #1E3A8A;
     }
-    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: bold; }
-    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: bold; }
-    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; margin-right: 8px; display: inline-block; border: 1px solid #DDD6FE; }
+    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 6px 14px; border-radius: 999px; font-size: 16px; font-weight: bold; }
+    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 6px 14px; border-radius: 999px; font-size: 16px; font-weight: bold; }
+    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 6px 12px; border-radius: 6px; font-size: 16px; font-weight: 600; margin-right: 8px; display: inline-block; border: 1px solid #DDD6FE; }
     .sentence { font-size: 24px; font-weight: 600; color: #111827; margin: 20px 0; font-family: 'SimSun', serif; line-height: 1.6; }
-    .analysis-box { background-color: #F9FAFB; padding: 18px; border-radius: 8px; font-size: 16px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 15px; line-height: 1.6; }
+    .analysis-box { background-color: #F9FAFB; padding: 18px; border-radius: 8px; font-size: 18px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 15px; line-height: 1.6; }
     
-    .agent-box { padding: 20px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E5E7EB; font-size: 16px; line-height: 1.6; }
+    .agent-box { padding: 20px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E5E7EB; font-size: 18px; line-height: 1.6; }
     .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
     .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
