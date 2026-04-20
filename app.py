@@ -21,6 +21,25 @@ if 'page' not in st.session_state:
 # --- 全局极简 CSS ---
 st.markdown("""
 <style>
+    /* ================= 专门针对左侧边栏导航（Radio按钮）的舒展美化 ================= */
+    /* 1. 增加各个选项卡之间的上下间距，彻底告别拥挤感 */
+    div[role="radiogroup"] {
+        gap: 20px !important; 
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    /* 2. 显著放大选项文字，加粗并加深颜色，提升阅读体验 */
+    .stRadio [data-testid="stMarkdownContainer"] p {
+        font-size: 22px !important; 
+        font-weight: 500 !important;
+        color: #1F2937 !important;
+        letter-spacing: 1px !important;
+    }
+    /* 3. 等比例放大单选框前面的“小圆圈”，使其与大字号协调 */
+    .stRadio [data-baseweb="radio"] > div:first-child {
+        height: 24px !important;
+        width: 24px !important;
+    }
     /* 全局背景色：素雅的纸张质感 */
     .stApp {
         background-color: #FAF9F6;
