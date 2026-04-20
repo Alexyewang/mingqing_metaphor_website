@@ -85,7 +85,24 @@ st.markdown("""
     .main .block-container {
         padding-top: 150px !important; /* 增加空间，防止固定栏遮挡正文 */
     }
-
+    /* 1. 统一保留此段：确保页面内容下移足够空间，防止被悬浮栏遮挡 */
+    .main .block-container {
+        padding-top: 160px !important; /* 稍微再加大一点间距，显得更舒展 */
+        padding-bottom: 5rem !important;
+    }
+    
+    /* 2. 统一顶栏标题颜色（去突兀蓝色） */
+    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
+        color: #1F2937 !important; /* 顶栏大标题改为深色 */
+    }
+    
+    /* 3. 修改高亮选项卡的边框颜色，使其不那么扎眼 */
+    div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        color: #1F2937 !important;
+        font-weight: bold !important;
+        border-bottom: 3px solid #1F2937 !important; /* 底部装饰线同步改色 */
+        border-radius: 0 !important;
+    }
     /* ================= 2. 增强版悬浮顶栏 (修复滑动消失问题) ================= */
     /* 锁定包含导航栏的容器，使其固定在窗口顶部 */
     div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
