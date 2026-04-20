@@ -183,6 +183,29 @@ st.markdown("""
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
             font-size: 20px !important; font-weight: 900 !important; color: #1E3A8A !important;
         }
+        /* ================= 专门修复手机端导航按钮“黑吃黑”看不清的问题 ================= */
+        
+        /* 1. 强制手机端导航所在的整行容器背景为纸张色，防止变黑 */
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
+            background-color: #FAF9F6 !important;
+        }
+
+        /* 2. 强制手机端所有导航按钮背景为纯白，文字为深墨色，确保清晰度 */
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
+            background-color: #FFFFFF !important; /* 背景强制白 */
+            color: #1F2937 !important;           /* 文字强制深墨色 */
+            border: 1px solid #E5E7EB !important; /* 增加浅灰色边框，更有质感 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; /* 增加微弱投影 */
+            height: 50px !important;              /* 稍微加高，方便手机点击 */
+            margin-bottom: 8px !important;        /* 增加上下按钮间的呼吸感 */
+        }
+
+        /* 3. 针对“正在使用”的那个选项卡（Primary 按钮）进行加亮 */
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
+            background-color: #F8FAFC !important; /* 浅蓝灰底 */
+            border-bottom: 4px solid #1F2937 !important; /* 底部粗线标明当前页 */
+            font-weight: 800 !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -393,7 +416,7 @@ elif st.session_state.page == 'about':
             st.markdown(f"<h2 style='color:#1E3A8A; margin-bottom: 20px;'>📘 {about_nav}</h2>", unsafe_allow_html=True)
             st.divider()
             if about_nav == "项目简介":
-                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目针对现有隐喻识别方法难以适配古典文本的问题，搭建了解耦多智能体隐喻识别框架与明清文学隐喻标注平台。平台支持在线句子隐喻识别、古典小说语句检索，并依据传统隐喻理论加入细粒度特征筛选功能。因隐喻本身存在理解差异，设“提交意见”窗口，经后台人工审核持续优化，维护学术争鸣的平台环境。对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
             elif about_nav == "主要功能":
                 st.markdown("""
                 <div style='font-size:20px; line-height:2.0; color:#374151;'>
