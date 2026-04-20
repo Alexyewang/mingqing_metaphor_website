@@ -109,7 +109,7 @@ def get_model_configs():
 MODEL_CONFIGS = get_model_configs()
 
 CORPUS_CONFIG = {
-    "红楼梦": "./dataset/500.xml",         
+    "红楼梦": "./dataset/hongloumeng.csv",         
     "西游记": "./dataset/xiyouji.csv",      
     "水浒传": "./dataset/shuihuzhuan.csv",  
     "三国演义": "./dataset/sanguo.csv",      
