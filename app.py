@@ -75,9 +75,9 @@ st.markdown("""
     [data-testid="collapsedControl"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
     
-    /* 核心修复：把顶部的巨大空白去掉，只留下刚好容纳悬浮顶栏的空间 */
+    /* 核心修改：将 padding-top 调大到 140px，大幅增加顶栏和下方内容的间距 */
     .main .block-container {
-        padding-top: 100px !important; 
+        padding-top: 140px !important; 
         padding-bottom: 5rem !important;
     }
 
@@ -86,17 +86,17 @@ st.markdown("""
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important; /* 撑满屏幕宽度 */
+        width: 100vw !important; 
         z-index: 999999 !important;
         background-color: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(10px) !important;
-        padding: 15px 3% !important; /* 左右留出呼吸感边距 */
-        border-bottom: 1px solid rgba(229, 231, 235, 0.8) !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; /* 悬浮阴影 */
-        align-items: center !important; /* 垂直居中 */
+        padding: 15px 0 !important; 
+        /* 核心修改：加粗加深底边框，作为一条明显的全局分割线 */
+        border-bottom: 2px solid #CBD5E1 !important; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; 
+        align-items: center !important; 
     }
     
-    /* 顶栏内右侧按钮美化为文字选项卡 */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button {
         border: none !important;
         background: transparent !important;
@@ -104,7 +104,6 @@ st.markdown("""
         box-shadow: none !important;
         color: #4B5563 !important;
     }
-    /* 当前页面选项卡底边框高亮 */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         color: #1E3A8A !important;
         font-weight: bold !important;
@@ -355,17 +354,16 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     return [item[1] for item in scored_items[:top_k]]
 
 # ================= 3. 路由与全局顶栏功能 =================
-
 def render_top_nav():
     """渲染原生且能吸顶的顶部导航栏"""
     st.markdown('<div class="sticky-nav-marker"></div>', unsafe_allow_html=True)
     
-    # 重新分配列比例：左侧标题占绝大部分，右侧给选项卡
-    col_title, c1, c2, c3, c4 = st.columns([4, 1, 1, 1.2, 1.5], gap="small")
+    # 核心修改：首尾各加一个占位列(值为1的列)，把标题和选项卡往中间挤，对齐下方卡片宽度
+    spacer_left, col_title, c1, c2, c3, c4, spacer_right = st.columns([1, 4.5, 1, 1, 1.2, 1.5, 1], gap="small")
     
     with col_title:
-        # 左侧平台名称，垂直居中
-        st.markdown("<h3 style='margin:0; padding-top:5px; color:#1E3A8A; font-weight:bold; letter-spacing: 2px;'>明清典籍隐喻计算平台</h3>", unsafe_allow_html=True)
+        # 核心修改：放大平台名称字号为 28px，并使用 h2
+        st.markdown("<h2 style='margin:0; padding-top:2px; color:#1E3A8A; font-weight:bold; letter-spacing: 2px; font-size: 28px;'>明清典籍隐喻计算平台</h2>", unsafe_allow_html=True)
 
     pages = {
         "🏠 首页": "home",
