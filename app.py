@@ -138,73 +138,74 @@ st.markdown("""
         }
     }
 
-    /* ================= 2. 手机端响应式适配 (<= 768px) ================= */
+/* ================= 3. 手机端排版修复 (<= 768px) ================= */
     @media (max-width: 768px) {
         .main .block-container { padding-top: 20px !important; padding-left: 10px !important; padding-right: 10px !important; }
-        .hero-title { font-size: 2.5rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
-        .floating-stats { display: none !important; } /* 隐藏左下角访问量防遮挡 */
-
-        /* 手机端顶栏取消固定悬浮，回归正常页面流 */
+        .hero-title { font-size: 2.2rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
+        .floating-stats { display: none !important; }
+        
+        /* 手机端导航条与抗深色模式修复 */
         div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
-            position: relative !important; top: unset !important; box-shadow: none !important; border: none !important; background: transparent !important; padding: 5px !important;
+            position: relative !important; background: #FAF9F6 !important; box-shadow: none !important; border-bottom: none !important; padding: 5px !important;
         }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div { flex-direction: column !important; max-width: 100% !important; }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 { text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important; }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
+            text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
+            background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
+            background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important;
+        }
 
-        /* 手机端菱形矩阵终极修复：绝对强制并列 */
+        /* --- 🚀 核心黑科技修复：手机端菱形强制拼合 (CSS Grid + 容器穿透) --- */
+        
+        /* 1. 将根容器设为严格的 2x2 网格阵列，钉死宽高 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
+            display: grid !important;
+            grid-template-columns: 114px 114px !important; /* 精确的两列 */
+            grid-template-rows: 114px 114px !important;    /* 精确的两行 */
+            gap: 12px !important;                          /* 菱形间的完美缝隙 */
             width: 240px !important;
-            margin: 0 auto 5vh auto !important;
-            transform: rotate(45deg) !important; /* 保留整体旋转 */
-            gap: 12px !important; /* 控制上下两行间距 */
+            height: 240px !important;
+            margin: 20px auto 50px auto !important;
+            transform: rotate(45deg) !important;           /* 保留旋转 */
+            padding: 0 !important;
         }
-        /* 强制 2列 横向排列，严禁转为上下堆叠！ */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important; /* 核心修复：强制水平 */
-            flex-wrap: nowrap !important;
-            gap: 12px !important; /* 左右间距 */
-            width: 100% !important;
+
+        /* 2. 剥掉 Streamlit 套在按钮外面的所有“伪装”外壳，让按钮直接参与网格排版 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="column"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stVerticalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stElementContainer"] {
+            display: contents !important; 
         }
-        /* 取消 Streamlit 手机端的自动 100% 宽度，平分 50% */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
-            width: calc(50% - 6px) !important; 
-            flex: 0 0 calc(50% - 6px) !important; 
-            min-width: 0 !important;
+
+        /* 3. 隐藏 marker 占位符，以免它霸占网格的一个格子 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stElementContainer"]:first-child {
+            display: none !important;
         }
-        /* 按钮尺寸缩小适配小屏幕 */
+
+        /* 4. 按钮尺寸完美填满网格单元 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
-            width: 100% !important; height: 114px !important; border-radius: 25px !important; padding: 0 !important;
-            background-color: rgba(255, 255, 255, 0.95) !important; border: 2px solid #E5E7EB !important; box-shadow: 0 5px 15px rgba(0,0,0,0.06) !important;
+            width: 114px !important; 
+            height: 114px !important; 
+            border-radius: 25px !important;
+            background-color: #FFFFFF !important;
+            border: 2px solid #E5E7EB !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.06) !important;
+            padding: 0 !important; margin: 0 !important;
         }
+
+        /* 5. 内部文字反转回正并修正颜色 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div {
-            transform: rotate(-45deg) !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
+            transform: rotate(-45deg) !important; 
+            display: flex !important; flex-direction: column !important; 
+            align-items: center !important; justify-content: center !important;
+            width: 100% !important; height: 100% !important;
         }
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
-            font-size: 20px !important; font-weight: 900 !important; color: #1E3A8A !important;
-        }
-        /* ================= 专门修复手机端导航按钮“黑吃黑”看不清的问题 ================= */
-        
-        /* 1. 强制手机端导航所在的整行容器背景为纸张色，防止变黑 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
-            background-color: #FAF9F6 !important;
-        }
-
-        /* 2. 强制手机端所有导航按钮背景为纯白，文字为深墨色，确保清晰度 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
-            background-color: #FFFFFF !important; /* 背景强制白 */
-            color: #1F2937 !important;           /* 文字强制深墨色 */
-            border: 1px solid #E5E7EB !important; /* 增加浅灰色边框，更有质感 */
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; /* 增加微弱投影 */
-            height: 50px !important;              /* 稍微加高，方便手机点击 */
-            margin-bottom: 8px !important;        /* 增加上下按钮间的呼吸感 */
-        }
-
-        /* 3. 针对“正在使用”的那个选项卡（Primary 按钮）进行加亮 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
-            background-color: #F8FAFC !important; /* 浅蓝灰底 */
-            border-bottom: 4px solid #1F2937 !important; /* 底部粗线标明当前页 */
-            font-weight: 800 !important;
+            font-size: 20px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important;
         }
     }
 </style>
