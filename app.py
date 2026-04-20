@@ -86,7 +86,7 @@ def get_and_update_visit_count():
 def get_model_configs():
     try:
         return {
-            "Deepseek-V3.2": {
+            "Deepseek-V3.2(推荐)": {
                 "base_url": "https://api.deepseek.com",
                 "model_name": "deepseek-chat",
                 "env_key": st.secrets["deepseek_api_key"]
@@ -239,7 +239,7 @@ with st.sidebar:
     st.markdown("基于多智能体架构的明清小说隐喻识别系统。")
     st.divider()
     st.subheader("⚙️ 在线推理模型设置")
-    selected_model = st.selectbox("选择底层大模型", list(MODEL_CONFIGS.keys()), index=2)
+    selected_model = st.selectbox("选择底层大模型", list(MODEL_CONFIGS.keys()), index=0)
     use_proxy = st.checkbox("启用海外代理 (针对 ChatGPT)", value=False)
     st.divider()
     total_visits = get_and_update_visit_count()
