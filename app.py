@@ -123,7 +123,7 @@ st.markdown("""
             grid-template-rows: 90px 90px !important;    
             
             /* 精准调节间距： */
-            column-gap: 22px !important;  /* 增加横向间距 (右上到左下) */
+            column-gap: 24px !important;  /* 增加横向间距 (右上到左下) */
             row-gap: 2px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
             
             /* 同步微调容器总宽高 (114*2 + 间距) */
