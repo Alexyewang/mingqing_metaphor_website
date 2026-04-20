@@ -20,6 +20,7 @@ if 'page' not in st.session_state:
 
 # --- 全局极简 CSS ---
 st.markdown("""
+
 <style>
     /* ================= 专门针对左侧边栏导航（Radio按钮）的舒展美化 ================= */
     /* 1. 增加各个选项卡之间的上下间距，彻底告别拥挤感 */
@@ -54,7 +55,7 @@ st.markdown("""
 
     /* ================= 1. 全局字号放大，告别拘谨 ================= */
     .stMarkdown p, .stRadio label, .stSelectbox label, .stCheckbox label, .stTextInput label, .stTextArea label {
-        font-size: 18px !important;
+        font-size: 22px !important;
         color: #374151;
     }
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
@@ -64,7 +65,7 @@ st.markdown("""
     
     /* 普通按钮放大 */
     .stButton>button {
-        font-size: 18px !important;
+        font-size: 22px !important;
         font-weight: bold !important;
         padding: 10px 24px !important;
         border-radius: 8px !important;
@@ -85,7 +86,24 @@ st.markdown("""
     .main .block-container {
         padding-top: 150px !important; /* 增加空间，防止固定栏遮挡正文 */
     }
-
+    /* 1. 统一保留此段：确保页面内容下移足够空间，防止被悬浮栏遮挡 */
+    .main .block-container {
+        padding-top: 160px !important; /* 稍微再加大一点间距，显得更舒展 */
+        padding-bottom: 5rem !important;
+    }
+    
+    /* 2. 统一顶栏标题颜色（去突兀蓝色） */
+    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
+        color: #1F2937 !important; /* 顶栏大标题改为深色 */
+    }
+    
+    /* 3. 修改高亮选项卡的边框颜色，使其不那么扎眼 */
+    div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        color: #1F2937 !important;
+        font-weight: bold !important;
+        border-bottom: 3px solid #1F2937 !important; /* 底部装饰线同步改色 */
+        border-radius: 0 !important;
+    }
     /* ================= 2. 增强版悬浮顶栏 (修复滑动消失问题) ================= */
     /* 锁定包含导航栏的容器，使其固定在窗口顶部 */
     div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
@@ -209,13 +227,13 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 24px;
         border: 1px solid #E5E7EB; border-left: 6px solid #1E3A8A;
     }
-    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: bold; }
-    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: bold; }
-    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; margin-right: 8px; display: inline-block; border: 1px solid #DDD6FE; }
+    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 6px 14px; border-radius: 999px; font-size: 16px; font-weight: bold; }
+    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 6px 14px; border-radius: 999px; font-size: 16px; font-weight: bold; }
+    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 6px 12px; border-radius: 6px; font-size: 16px; font-weight: 600; margin-right: 8px; display: inline-block; border: 1px solid #DDD6FE; }
     .sentence { font-size: 24px; font-weight: 600; color: #111827; margin: 20px 0; font-family: 'SimSun', serif; line-height: 1.6; }
-    .analysis-box { background-color: #F9FAFB; padding: 18px; border-radius: 8px; font-size: 16px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 15px; line-height: 1.6; }
+    .analysis-box { background-color: #F9FAFB; padding: 18px; border-radius: 8px; font-size: 18px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 15px; line-height: 1.6; }
     
-    .agent-box { padding: 20px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E5E7EB; font-size: 16px; line-height: 1.6; }
+    .agent-box { padding: 20px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #E5E7EB; font-size: 18px; line-height: 1.6; }
     .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
     .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
@@ -233,6 +251,79 @@ st.markdown("""
         border: 1px solid #E5E7EB;
         z-index: 1000;
         backdrop-filter: blur(4px);
+    }
+/* ================= 3. 手机端排版修复 (<= 768px) ================= */
+    @media (max-width: 768px) {
+        .main .block-container { padding-top: 20px !important; padding-left: 10px !important; padding-right: 10px !important; }
+        .hero-title { font-size: 2.2rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
+        .floating-stats { display: none !important; }
+        
+        /* 手机端导航条与抗深色模式修复 */
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
+            position: relative !important; background: #FAF9F6 !important; box-shadow: none !important; border-bottom: none !important; padding: 5px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
+            text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
+            background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
+            background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important;
+        }
+        
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
+            display: grid !important;
+            grid-template-columns: 90px 90px !important; 
+            grid-template-rows: 90px 90px !important;    
+            
+            /* 精准调节间距： */
+            column-gap: 24px !important;  /* 增加横向间距 (右上到左下) */
+            row-gap: 1px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
+            
+            /* 同步微调容器总宽高 (114*2 + 间距) */
+            width: 194px !important;
+            height: 184px !important; 
+            
+            margin: 20px auto 50px auto !important;
+            transform: rotate(45deg) !important;           
+            padding: 0 !important;
+        }
+
+        /* 2. 剥掉 Streamlit 套在按钮外面的所有“伪装”外壳，让按钮直接参与网格排版 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="column"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stVerticalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stElementContainer"] {
+            display: contents !important; 
+        }
+
+        /* 3. 隐藏 marker 占位符，以免它霸占网格的一个格子 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stElementContainer"]:first-child {
+            display: none !important;
+        }
+
+        /* 4. 按钮尺寸完美填满网格单元 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
+            width: 114px !important; 
+            height: 114px !important; 
+            border-radius: 25px !important;
+            background-color: #FFFFFF !important;
+            border: 2px solid #E5E7EB !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.06) !important;
+            padding: 0 !important; margin: 0 !important;
+        }
+
+        /* 5. 内部文字反转回正并修正颜色 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div {
+            transform: rotate(-45deg) !important; 
+            display: flex !important; flex-direction: column !important; 
+            align-items: center !important; justify-content: center !important;
+            width: 100% !important; height: 100% !important;
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
+            font-size: 20px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -378,7 +469,7 @@ def render_top_nav():
     
     with col_title:
         # 增大左上角标题字号 (32px)
-        st.markdown("<h2 style='margin:0; color:#1E3A8A; font-weight:900; font-size: 32px; letter-spacing: -1px;'>明清典籍隐喻计算平台</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; color:#1E3A8A; font-weight:900; font-size: 32px; letter-spacing: -1px;'>明清文学隐喻智能分析平台</h2>", unsafe_allow_html=True)
 
     pages = {
         "🏠 首页": "home",
@@ -404,7 +495,7 @@ def render_top_nav():
 
 if st.session_state.page == 'home':
     # 首页无顶栏，只有超大标题和大菱形矩阵菜单
-    st.markdown('<div class="hero-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-title">明清文学隐喻智能分析平台</div>', unsafe_allow_html=True)
     
     with st.container():
         st.markdown('<div class="rhombus-menu-marker"></div>', unsafe_allow_html=True)
@@ -449,8 +540,8 @@ elif st.session_state.page == 'about':
                 <div style='font-size:20px; line-height:2.0; color:#374151;'>
                 <ul>
                 <li style='margin-bottom: 15px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li>
-                <li style='margin-bottom: 15px;'><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li>
-                <li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li>
+                <li style='margin-bottom: 15px;'><b>多智能体在线识别</b>：通过语义提取、考证推理、逻辑审核三步完成自动隐喻识别。</li>
+                <li><b>自动特征分类与专家共创</b>：支持用户反馈、纠错以及多元化理解。</li>
                 </ul>
                 </div>
                 """, unsafe_allow_html=True)
@@ -458,7 +549,7 @@ elif st.session_state.page == 'about':
                 st.markdown("""
                 <div style='font-size:20px; line-height:2.0; color:#374151;'>
                 <ol>
-                <li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li>
+                <li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清文学隐喻语料库</b>，进行库内数据探索与检索。</li>
                 <li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li>
                 </ol>
                 </div>
