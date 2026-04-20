@@ -157,10 +157,6 @@ st.markdown("""
         div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
             background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important;
         }
-
-        /* --- 🚀 核心黑科技修复：手机端菱形强制拼合 (CSS Grid + 容器穿透) --- */
-        
-/* --- 🚀 核心修复：手机端菱形间距平衡化 --- */
         
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             display: grid !important;
