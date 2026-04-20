@@ -259,7 +259,7 @@ st.markdown("""
             display: flex !important;
             flex-direction: row !important; /* 强制横向 */
             flex-wrap: nowrap !important;
-            gap: 15px !important;
+            gap: 1px !important;
         }
         
         /* 2. 强制每一列平分宽度，不换行 */
