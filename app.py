@@ -11,18 +11,92 @@ import os
 import datetime
 from supabase import create_client, Client
 
-# ================= 1. 页面配置与路由状态初始化 =================
+# ================= 1. 页面配置与状态初始化 =================
 st.set_page_config(page_title="明清小说隐喻计算平台", layout="wide", page_icon="📚")
 
-# 初始化页面路由状态
+# 初始化页面路由与搜索穿透状态
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
-if 'home_query' not in st.session_state:
-    st.session_state.home_query = ""
-if 'home_book' not in st.session_state:
-    st.session_state.home_book = "全部数据源"
+if 'home_search' not in st.session_state:
+    st.session_state.home_search = ""
 
-# ================= 2. 核心功能函数 (完全保持原样) =================
+# ================= 2. 纯净学术 UI 定制 (CSS) =================
+# 动态注入 CSS：如果是在首页，彻底隐藏侧边栏控制按钮，保证极致留白
+hide_sidebar_css = """
+    <style>
+        [data-testid="collapsedControl"] { display: none !important; }
+        section[data-testid="stSidebar"] { display: none !important; }
+    </style>
+""" if st.session_state.page == 'home' else ""
+
+st.markdown(hide_sidebar_css + """
+<style>
+    /* 全局背景：素雅纸张质感色调 */
+    .stApp {
+        background-color: #FAF9F6;
+        background-image: radial-gradient(#E5E7EB 0.5px, transparent 0.5px);
+        background-size: 24px 24px;
+    }
+
+    /* 隐藏默认页眉 */
+    header {visibility: hidden;}
+    .main .block-container {padding-top: 1rem;}
+
+    /* 首页顶部微导航 */
+    .top-nav { font-family: 'SimSun', serif; font-size: 18px; font-weight: bold; color: #4B5563; margin-top: 10px;}
+
+    /* 首页大标题与副标题：复刻参考图的居中沉浸感 */
+    .home-title {
+        font-family: 'SimSun', 'STSong', serif;
+        font-size: 4rem;
+        color: #27272A;
+        text-align: center;
+        margin-top: 18vh;
+        font-weight: 900;
+        letter-spacing: 12px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+    }
+    .home-subtitle {
+        text-align: center;
+        color: #6B7280;
+        font-size: 1.2rem;
+        margin-bottom: 6vh;
+        font-family: 'SimSun', serif;
+        letter-spacing: 4px;
+    }
+
+    /* 首页搜索框容器美化，消除默认 input 的突兀感 */
+    .hero-search div[data-baseweb="input"] {
+        border-radius: 8px 0 0 8px !important;
+        border: 1px solid #D1D5DB !important;
+        border-right: none !important;
+        background-color: white !important;
+    }
+    
+    /* 系统内部卡片与组件样式 (保持原样) */
+    .card {
+        background-color: #FFFFFF; 
+        padding: 24px; border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        border: 1px solid #F3F4F6;
+        border-left: 6px solid #1E3A8A;
+    }
+    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px; }
+    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px; }
+    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-right: 8px; margin-bottom: 8px; display: inline-block; border: 1px solid #DDD6FE; }
+    .sentence { font-size: 20px; font-weight: 600; color: #111827; margin: 15px 0; font-family: 'SimSun', serif; }
+    .analysis-box { background-color: #F9FAFB; padding: 15px; border-radius: 6px; font-size: 14px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 12px; }
+    
+    .agent-box { padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E5E7EB; }
+    .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
+    .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
+    .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
+    .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
+</style>
+""", unsafe_allow_html=True)
+
+# ================= 3. 核心逻辑函数 (原封不动) =================
 def get_and_update_visit_count():
     VISIT_FILE = "./dataset/visit_count.json"
     if 'has_visited' not in st.session_state:
@@ -123,152 +197,77 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     scored_items.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_items[:top_k]]
 
-# ================= 3. 独立系统路由 (Router) =================
+# ================= 4. 路由逻辑 (入口页 vs 系统页) =================
 
+# --- A. 纯净入口首页 (Splash Page) ---
 if st.session_state.page == 'home':
-    # ----------------- 独立首页视图 (Home Gateway) -----------------
-    st.markdown("""
-    <style>
-        /* 首页古风素雅背景 */
-        .stApp {
-            background-color: #F4EFE6; /* 宣纸/古籍底色 */
-            background-image: url('https://www.transparenttextures.com/patterns/rice-paper.png');
-        }
-        header {visibility: hidden;}
-        #MainMenu {visibility: hidden;}
-        
-        /* 顶部导航条 */
-        .top-nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 0; margin-bottom: 15vh;
-        }
-        .nav-brand { font-family: 'SimSun', serif; font-size: 24px; font-weight: bold; color: #4A3E3D; }
-        .nav-links span { margin: 0 15px; color: #78716C; font-size: 14px; cursor: pointer; }
-        
-        /* 中央大标题区 */
-        .home-subtitle {
-            text-align: center; color: #6B7280; font-size: 16px; 
-            letter-spacing: 6px; margin-bottom: 20px; font-family: 'SimSun', serif;
-        }
-        .home-title {
-            text-align: center; font-family: 'SimSun', 'STSong', serif; 
-            font-size: 4rem; color: #292524; letter-spacing: 8px; position: relative;
-            margin-bottom: 60px; text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
-        }
-        .ai-stamp {
-            position: absolute; right: 18%; top: -15px; 
-            border: 2px solid #DC2626; color: #DC2626; padding: 2px 8px; 
-            font-weight: bold; font-size: 16px; transform: rotate(12deg); border-radius: 4px; opacity: 0.8;
-        }
-        
-        /* 居中搜索框容器模拟 */
-        .search-container {
-            background: #FFFFFF; padding: 10px 20px; border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin: 0 auto; max-width: 800px;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    # 顶部模拟参考图的左上/右上布局
+    nav_cols = st.columns([10, 1, 1])
+    with nav_cols[0]: 
+        st.markdown('<div class="top-nav">✍️ 明清古籍计算</div>', unsafe_allow_html=True)
+    with nav_cols[1]: 
+        st.button("关于", key="home_about")
+    with nav_cols[2]: 
+        st.button("登录", key="home_login")
 
-    # 顶栏
-    st.markdown("""
-    <div class="top-nav">
-        <div class="nav-brand">🏛️ 隐喻计算</div>
-        <div class="nav-links"><span>首页检索</span><span>智能识别</span><span>关于平台</span></div>
-    </div>
-    """, unsafe_allow_html=True)
+    # 居中超大标题
+    st.markdown('<div class="home-title">隐喻计算平台</div>', unsafe_allow_html=True)
+    st.markdown('<div class="home-subtitle">数字文献核心基础设施 · 开放集成集成体系</div>', unsafe_allow_html=True)
 
-    # 标题区
-    st.markdown('<div class="home-subtitle">数字文献核心基础设施</div>', unsafe_allow_html=True)
-    st.markdown('<div class="home-title">全球汉籍隐喻开放集成<span class="ai-stamp">AI 驱动版</span></div>', unsafe_allow_html=True)
-
-    # 居中搜索框区域
-    st.markdown('<div class="search-container">', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([2, 6, 2])
-    with c1:
-        home_b = st.selectbox("数据源", ["全部数据源", "红楼梦", "西游记", "水浒传", "三国演义", "金瓶梅", "儒林外史"], label_visibility="collapsed")
+    # 居中组合：搜索框 + 进入系统按钮
+    # 利用 columns 控制宽度，使其居中且紧凑
+    c1, c2, c3, c4 = st.columns([2, 4, 1, 2])
     with c2:
-        home_q = st.text_input("搜索内容", placeholder="输入书名、作者或句子内容...", label_visibility="collapsed")
+        st.markdown('<div class="hero-search">', unsafe_allow_html=True)
+        search_kw = st.text_input("hero_search", placeholder="输入书名、作者或句子关键词...", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
     with c3:
-        if st.button("检索 🔍", type="primary", use_container_width=True):
-            st.session_state.home_query = home_q
-            st.session_state.home_book = home_b
+        # 为了视觉上和输入框齐平，通过 CSS 去除按钮圆角并加高
+        st.markdown("""
+            <style>
+                div.stButton > button:first-child {
+                    height: 42px; border-radius: 0 8px 8px 0; margin-top: 0; border-left: none;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("进入系统", type="primary", use_container_width=True):
+            st.session_state.home_search = search_kw
             st.session_state.page = 'app'
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 底部访问统计
+    total_visits = get_and_update_visit_count()
+    st.markdown(f'<div style="position:fixed; bottom:30px; width:100%; text-align:center; color:#9CA3AF; font-size:0.9rem;">👁️ 平台访问量: {total_visits} · © 2026 隐喻计算课题组</div>', unsafe_allow_html=True)
 
-    st.write("\n")
-    _, center_col, _ = st.columns([1, 2, 1])
-    with center_col:
-        if st.button("🚀 跳过检索，直接进入在线多智能体分析工作台", use_container_width=True):
-            st.session_state.home_query = ""
-            st.session_state.home_book = "全部数据源"
-            st.session_state.page = 'app'
-            st.rerun()
-
+# --- B. 主系统内部 (App Workspace) ---
 else:
-    # ----------------- 内部工作台视图 (Workspace App) -----------------
-    st.markdown("""
-    <style>
-        /* 恢复工作台干净现代背景 */
-        .stApp {background-color: #F8FAFC; background-image: none;}
-        .main .block-container {padding-top: 2rem;}
-        
-        .card {
-            background-color: #ffffff; padding: 25px; border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; 
-            border: 1px solid #F1F5F9; border-left: 6px solid #2563EB; transition: transform 0.2s;
-        }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .tag-metaphor { background: linear-gradient(135deg, #DEF7EC, #D1FAE5); color: #046C4E; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid #A7F3D0; margin-right: 12px; }
-        .tag-normal { background: linear-gradient(135deg, #F3F4F6, #E5E7EB); color: #4B5563; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid #D1D5DB; margin-right: 12px; }
-        .attr-badge { background-color: #EEF2FF; color: #4338CA; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-right: 8px; margin-bottom: 8px; display: inline-block; border: 1px solid #C7D2FE; }
-        .sentence { font-size: 20px; font-weight: 600; color: #111827; margin: 18px 0; font-family: 'SimSun', serif; line-height: 1.6; }
-        .analysis-box { background-color: #F8FAFC; padding: 18px; border-radius: 8px; font-size: 14.5px; color: #334155; border-left: 4px solid #94A3B8; margin-top: 15px; line-height: 1.6; }
-        .agent-box { padding: 18px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #E2E8F0; font-size: 14px; }
-        .agent1 {background-color: #EFF6FF; border-left: 5px solid #3B82F6;}
-        .agent2 {background-color: #FFF7ED; border-left: 5px solid #F97316;}
-        .agent3 {background-color: #ECFDF5; border-left: 5px solid #10B981;}
-        .agent4 {background-color: #F5F3FF; border-left: 5px solid #8B5CF6;}
-    </style>
-    """, unsafe_allow_html=True)
-
     with st.sidebar:
-        st.title("🏛️ 平台控制台")
-        if st.button("⬅️ 退回系统首页", use_container_width=True):
+        st.title("🏛️ 平台设置")
+        if st.button("🏠 返回首页", use_container_width=True):
             st.session_state.page = 'home'
+            st.session_state.home_search = "" # 退出时清空搜索态
             st.rerun()
         st.divider()
-        st.subheader("⚙️ 在线推理模型")
-        selected_model = st.selectbox("选择底层大模型", list(MODEL_CONFIGS.keys()), index=0)
-        use_proxy = st.checkbox("启用海外代理 (针对 ChatGPT)", value=False)
+        selected_model = st.selectbox("选择大模型", list(MODEL_CONFIGS.keys()), index=0)
+        use_proxy = st.checkbox("启用代理", value=False)
         st.divider()
-        total_visits = get_and_update_visit_count()
-        st.markdown(f"""<div style="background: #F1F5F9; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #E2E8F0;">
-            <span style="font-size: 14px; color: #64748B;">👁️ 累计科研访问量</span><br/>
-            <span style="font-size: 26px; font-weight: bold; color: #1E3A8A;">{total_visits}</span>
-        </div>""", unsafe_allow_html=True)
-        st.caption("© 隐喻计算工作台")
+        st.caption("© 多智能体隐喻计算")
 
-    tab1, tab2 = st.tabs(["🔍 语料检索 (Corpus Explorer)", "🤖 在线识别 (Online Metaphor Recognition)"])
-
+    # 双 Tab 无缝切换，不再使用“按钮切换页面”的生硬方式
+    tab1, tab2 = st.tabs(["🔍 语料检索", "🤖 在线识别"])
+    
     # ----------------- Tab 1: 语料检索 -----------------
     with tab1:
-        st.header("明清小说隐喻语料库")
+        st.header("语料探索")
         samples = load_all_corpora()
-        
-        if not samples: st.warning("未找到语料库文件")
+        if not samples: st.warning("未找到语料文件")
         else:
-            # 读取首页传进来的默认参数
-            default_q = st.session_state.get("home_query", "")
-            default_b = st.session_state.get("home_book", "全部数据源")
-            if default_b == "全部数据源": default_b = "全部"
-            available_books = sorted(list(set(s["Book"] for s in samples)))
-
             c1, c2, c3 = st.columns([2, 1, 1])
-            with c1: search_query = st.text_input("🔍 内容检索", value=default_q)
-            with c2: filter_book = st.selectbox("📚 书籍", ["全部"] + available_books, index=(["全部"] + available_books).index(default_b) if default_b in ["全部"] + available_books else 0)
-            with c3: filter_label = st.selectbox("🏷️ 类型", ["全部", "仅隐喻", "非隐喻"])
+            with c1: 
+                # 如果首页输入了关键词，这里会自动填充
+                search_query = st.text_input("🔍 搜索句子内容", value=st.session_state.home_search)
+            with c2: filter_book = st.selectbox("📚 书籍筛选", ["全部"] + sorted(list(set(s["Book"] for s in samples))))
+            with c3: filter_label = st.selectbox("🏷️ 基础类型", ["全部", "仅隐喻", "非隐喻"])
             
             f_syntax, f_cog, f_conv, f_form = "全部", "全部", "全部", "全部"
             if filter_label != "非隐喻":
@@ -285,29 +284,30 @@ else:
             if f_conv != "全部": filtered = [s for s in filtered if s.get("Conventionality") == f_conv]
             if f_form != "全部": filtered = [s for s in filtered if s.get("Form_Features") == f_form]
 
-            if f_syntax == "全部" and f_cog == "全部":
+            if f_syntax == "全部" and f_cog == "全部" and not search_query:
                 filtered.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
-            st.markdown(f"为您检索到 **{len(filtered)}** 条语料。")
+            st.markdown(f"为您检索到 **{len(filtered)}** 条符合条件的语料。")
             st.divider()
 
             for s in filtered[:50]:
                 tag_c, tag_t = ("tag-metaphor", "✨ 隐喻") if s["Label"] == 1 else ("tag-normal", "📝 非隐喻")
                 b_html, d_html = "", ""
                 if s["Label"] == 1:
-                    b_html = f"""<div style="margin-top: 10px;">
-<span class="attr-badge">📌 句法: {s.get('Syntax_Type', '未知')}</span>
-<span class="attr-badge">🧠 认知: {s.get('Cognitive_Type', '未知')}</span>
-<span class="attr-badge">⏳ 规约: {s.get('Conventionality', '未知')}</span>
-<span class="attr-badge">🎭 特征: {s.get('Form_Features', '未知')}</span>
+                    b_html = f"""<div style="margin-top: 8px;">
+<span class="attr-badge">📌 句法: {s['Syntax_Type']}</span>
+<span class="attr-badge">🧠 认知: {s['Cognitive_Type']}</span>
+<span class="attr-badge">⏳ 规约: {s['Conventionality']}</span>
+<span class="attr-badge">🎭 特征: {s['Form_Features']}</span>
 </div>"""
-                    d_html = f"""<div style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #CBD5E1;">
-<b style="color:#4C1D95;">🧬 Agent 4 细分类依据：</b><br/>
-<ul style="margin-top: 8px; color: #475569; font-size: 13.5px;">
-<li style="margin-bottom: 4px;"><b>句法：</b>{s.get('Syntax_Analysis', '暂无解析')}</li>
-<li style="margin-bottom: 4px;"><b>认知：</b>{s.get('Cognitive_Analysis', '暂无解析')}</li>
-<li style="margin-bottom: 4px;"><b>规约：</b>{s.get('Conventionality_Analysis', '暂无解析')}</li>
-<li><b>综合：</b>{s.get('Form_Analysis', '暂无解析')}</li>
-</ul></div>"""
+                    d_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
+<b>🧬 Agent 4 细分类依据：</b><br/>
+<ul style="margin-top: 5px; color: #4B5563; font-size: 13px;">
+<li><b>句法：</b>{s['Syntax_Analysis']}</li>
+<li><b>认知：</b>{s['Cognitive_Analysis']}</li>
+<li><b>规约：</b>{s['Conventionality_Analysis']}</li>
+<li><b>综合：</b>{s['Form_Analysis']}</li>
+</ul>
+</div>"""
                 
                 raw_a = s['Analysis']
                 form_a = raw_a 
@@ -317,18 +317,18 @@ else:
                         p2 = raw_a.split("【二审】:")[1].split("| 【终审】:")[0].strip()
                         p3 = raw_a.split("【终审】:")[1].strip()
                         form_a = f"""<div style="margin-top: 5px;">
-<div class="agent-box agent1"><b style="color: #1E3A8A;">🕵️‍♂️ Agent 1 (语义)：</b> {p1}</div>
-<div class="agent-box agent2"><b style="color: #9A3412;">⚖️ Agent 2 (推理)：</b> {p2}</div>
-<div class="agent-box agent3" style="margin-bottom:0;"><b style="color: #065F46;">👨‍⚖️ Agent 3 (裁判)：</b> {p3}</div>
+<div class="agent-box agent1"><b style="color: #1E3A8A;">🕵️‍♂️ Agent 1:</b> {p1}</div>
+<div class="agent-box agent2"><b style="color: #9A3412;">⚖️ Agent 2:</b> {p2}</div>
+<div class="agent-box agent3"><b style="color: #065F46;">👨‍⚖️ Agent 3:</b> {p3}</div>
 </div>"""
                     except: pass 
 
                 o_html = ""
                 if s.get("Other_Explanations"):
                     its = "".join([f"<li style='margin-bottom: 6px;'>{exp}</li>" for exp in s["Other_Explanations"]])
-                    o_html = f"""<div style="margin-top: 15px; background-color: #FEF3C7; padding: 15px; border-radius: 8px; border-left: 4px solid #F59E0B;">
-<b style="color: #B45309; font-size: 14.5px;">💡 其他专家/视角解析：</b><br/>
-<ul style="margin-top: 8px; color: #92400E; font-size: 13.5px;">{its}</ul>
+                    o_html = f"""<div style="margin-top: 15px; background-color: #FEF3C7; padding: 12px; border-radius: 6px;">
+<b style="color: #D97706; font-size: 14px;">💡 其他专家解析补充：</b>
+<ul style="margin-top: 8px; color: #92400E; font-size: 13px; padding-left: 20px;">{its}</ul>
 </div>"""
                 
                 st.markdown(f"""<div class="card">
@@ -336,14 +336,15 @@ else:
 {b_html}
 <div class="sentence">{s['Sentence']}</div>
 <details>
-<summary style="cursor: pointer; color: #2563EB; font-size: 14.5px; font-weight: 600;">展开多维专家解析 ▾</summary>
+<summary style="cursor: pointer; color: #3B82F6; font-size: 14px;">展开多维解析</summary>
 <div class="analysis-box">
-<b style="font-size: 15px; color: #334155;">基础判决逻辑：</b>
+<b style="font-size: 14px; color: #475569;">基础判决逻辑：</b>
 {form_a}
 {d_html}
 {o_html}
 </div>
-</details></div>""", unsafe_allow_html=True)
+</details>
+</div>""", unsafe_allow_html=True)
                 
                 with st.expander("✍️ 提交更正意见"):
                     with st.form(key=f"f_{s['Sentence'][:10]}_{hash(s['Sentence'])}"):
@@ -354,7 +355,7 @@ else:
                             cf1, cf2 = st.columns(2)
                             with cf1: ns, nc = st.text_input("句法", value=ns), st.text_input("认知", value=nc)
                             with cf2: nv, nf = st.text_input("规约", value=nv), st.text_input("特征", value=nf)
-                        if st.form_submit_button("安全提交", use_container_width=True):
+                        if st.form_submit_button("安全提交"):
                             if save_feedback({"book": s['Book'], "sentence": s['Sentence'], "original_label": int(s['Label']), "original_analysis": raw_a, "suggested_label": int(nl), "suggested_analysis": na, "syntax_type": ns, "cognitive_type": nc, "conventionality": nv, "form_features": nf}): st.success("✅ 提交成功")
 
     # ----------------- Tab 2: 在线识别 -----------------
@@ -398,4 +399,4 @@ else:
                     s4.update(label="✅ Agent 4 完成", state="complete")
             st.subheader("💡 关联推荐")
             sims = get_similar_metaphors(re2, ts, load_all_corpora())
-            for sim in sims: st.markdown(f'<div class="card"><span class="tag-metaphor" style="float:right;">关联度高</span><div style="font-weight:bold;">《{sim["Book"]}》</div><div class="sentence" style="font-size:16px;">{sim["Sentence"]}</div></div>', unsafe_allow_html=True)
+            for sim in sims: st.markdown(f'<div class="card"><span class="tag-metaphor" style="float:right;">关联度高</span><div style="font-weight:bold;">《{sim["Book"]}》</div><div>{sim["Sentence"]}</div></div>', unsafe_allow_html=True)
