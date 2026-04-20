@@ -271,7 +271,7 @@ def merge_debug_to_corpus():
     except Exception as e:
         st.sidebar.error(f"合并过程中发生错误: {e}")
 
-# ================= 4. 侧边栏设计 =================
+# 侧边栏
 with st.sidebar:
     st.title("🏛️ 古籍隐喻计算平台")
     st.markdown("基于多智能体架构的明清小说隐喻识别系统。")
@@ -290,7 +290,7 @@ with st.sidebar:
     st.divider()
     st.caption("© 多智能体隐喻在线识别")
 
-# ================= 5. 主页面双 Tab 设计 =================
+# 主页面双 Tab 
 tab1, tab2 = st.tabs(["🔍 语料检索 (Corpus Explorer)", "🤖 在线识别 (Online Metaphor Recognition)"])
 
 # ----------------- Tab 1: 语料检索 -----------------
@@ -355,7 +355,7 @@ with tab1:
             
             st.write("") 
 
-# ----------------- Tab 2: 算法靶场 -----------------
+# 在线识别
 with tab2:
     st.header("多智能体隐喻在线识别")
     st.markdown("输入任意明清小说语句，观察 **语义提取 (Agent 1) ➔ 考证推理 (Agent 2) ➔ 逻辑审核 (Agent 3)** 的推理全过程。")
@@ -366,7 +366,7 @@ with tab2:
     with col_book:
         target_book = st.text_input("目标书籍 (选填)：", placeholder="例如：红楼梦")
         
-    run_btn = st.button("🚀 运行交叉反射分析 (Run Analysis)", type="primary")
+    run_btn = st.button("🚀 运行多智能体隐喻分析 (Run Analysis)", type="primary")
     
     if run_btn:
         book_context = target_book.strip() if target_book.strip() else "明清小说"
@@ -377,7 +377,7 @@ with tab2:
         
         st.divider()
         
-        with st.status("🕵️‍♂️ Agent 1 (语义提纯) 正在分析表层结构...", expanded=True) as status1:
+        with st.status("🕵️‍♂️ Agent 1 (语义提取) 正在分析表层结构...", expanded=True) as status1:
             prompt1 = f"""这是《{book_context}》中的句子。
                             你是语言学的专家，你有两个任务：
                             - 分析句子含义，不要过度解读。
@@ -404,7 +404,7 @@ with tab2:
                 st.error(f"Agent 1 失败: {e}")
                 st.stop()
 
-        with st.status("⚖️ Agent 2 (跨域推理) 正在进行深度隐喻考证...", expanded=True) as status2:
+        with st.status("⚖️ Agent 2 (推理) 正在进行深度隐喻考证...", expanded=True) as status2:
             prompt2 = f"""这是《{book_context}》中的句子。
 参考我提供给你的句子含义，以及可能用到比喻修辞的词（不一定真的有比喻），判断句子是否包含比喻修辞。注意结合比喻的定义和《{book_context}》相关知识，不要过度解读。
 请严格返回JSON格式：{{ "label": 1, "analysis": "理由"}}
@@ -432,7 +432,7 @@ with tab2:
                 st.error(f"Agent 2 失败: {e}")
                 st.stop()
 
-        with st.status("👨‍⚖️ Agent 3 (逻辑裁判) 正在生成最终决议...", expanded=True) as status3:
+        with st.status("👨‍⚖️ Agent 3 (逻辑审核) 正在生成最终决议...", expanded=True) as status3:
             prompt3 = f"""检查【报告】的分析和得到的结论是否矛盾。如果矛盾则根据【报告】的分析修正结果。如果句子中含有比喻输出label 1，否则输出0。报告: "{reason2}"
             请严格返回JSON格式：{{"label": 1或0, "analysis": "最终判决理由"}}"""
             
@@ -457,7 +457,7 @@ with tab2:
                 
         if final_label == 1:
             st.subheader("💡 基于当前分析逻辑的关联推荐")
-            st.caption("AI 自动将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
+            st.caption("将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
             samples = load_all_corpora()
             if samples:
                 sim_matches = get_similar_metaphors(reason2, test_sentence, samples, top_k=3)
