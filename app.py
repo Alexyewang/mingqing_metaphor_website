@@ -21,6 +21,25 @@ if 'page' not in st.session_state:
 # --- 全局极简 CSS ---
 st.markdown("""
 <style>
+/* ================= 强力抗深色模式：解决白字白底隐形问题 ================= */
+    
+    /* 1. 强制所有输入组件（搜索框、下拉框、单选框）的标签为深墨色 */
+    [data-testid="stWidgetLabel"] p, 
+    [data-testid="stWidgetLabel"] div, 
+    .stTextInput label p, .stSelectbox label p, 
+    label p, label div {
+        color: #1F2937 !important;
+    }
+
+    /* 2. 强制普通 Markdown 容器及其内部的 div（如为您检索到...条语料）为深墨色 */
+    div[data-testid="stMarkdownContainer"] {
+        color: #1F2937 !important;
+    }
+    /* 这里不加 !important，是为了防止覆盖掉你检索数量那个 <span> 标签的蓝色高亮 */
+    div[data-testid="stMarkdownContainer"] p, 
+    div[data-testid="stMarkdownContainer"] div {
+        color: #1F2937; 
+    }
     /* ================= 0. 全端通用基础样式与你的原始设计 ================= */
     /* 全局背景色：素雅的纸张质感 */
     .stApp {
