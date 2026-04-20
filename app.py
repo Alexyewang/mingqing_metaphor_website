@@ -164,16 +164,16 @@ st.markdown("""
         
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             display: grid !important;
-            grid-template-columns: 114px 114px !important; 
-            grid-template-rows: 114px 114px !important;    
+            grid-template-columns: 90px 90px !important; 
+            grid-template-rows: 90px 90px !important;    
             
             /* 精准调节间距： */
             column-gap: 1px !important;  /* 增加横向间距 (右上到左下) */
             row-gap: 20px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
             
             /* 同步微调容器总宽高 (114*2 + 间距) */
-            width: 242px !important;
-            height: 230px !important; 
+            width: 194px !important;
+            height: 184px !important; 
             
             margin: 20px auto 50px auto !important;
             transform: rotate(45deg) !important;           
