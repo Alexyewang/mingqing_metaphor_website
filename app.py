@@ -264,7 +264,7 @@ st.markdown("""
         /* 2. 首页菱形菜单适配：在手机上缩小比例，防止超出屏幕 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             width: 280px !important; /* 缩小容器宽度 */
-            transform: rotate(45deg) scale(0.8) !important; /* 整体缩放 0.8 倍 */
+            transform: rotate(45deg) scale(0.5) !important; /* 整体缩放 0.8 倍 */
             margin: 0 auto 5vh auto !important;
         }
         
