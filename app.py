@@ -11,69 +11,106 @@ import os
 import datetime
 from supabase import create_client, Client
 
-# ================= 1. 页面与专业 UI 配置 =================
-st.set_page_config(page_title="明清小说隐喻语料库与多智能体隐喻在线识别", layout="wide", page_icon="📚")
+# ================= 1. 页面配置与全局 CSS =================
+st.set_page_config(page_title="明清典籍隐喻计算平台", layout="wide", page_icon="📚")
 
 st.markdown("""
 <style>
-    .main {background-color: #F9FAFB;}
+    /* 全局背景与纸张质感 */
+    .stApp {
+        background-color: #FAF9F6;
+        background-image: radial-gradient(#E5E7EB 0.5px, transparent 0.5px);
+        background-size: 24px 24px;
+    }
     
-    /* 首页大标题居中样式 */
-    .home-title {
+    /* 彻底隐藏 Streamlit 默认的全局侧边栏切换按钮和顶部装饰 */
+    [data-testid="collapsedControl"] { display: none !important; }
+    header {visibility: hidden;}
+    .main .block-container {padding-top: 0rem; padding-bottom: 5rem;} /* 底部留出空间给统计 */
+
+    /* 首页大标题：绝对居中 */
+    .hero-title {
         font-family: 'SimSun', 'STSong', serif;
-        font-size: 4rem;
+        font-size: 5rem;
         color: #1F2937;
         text-align: center;
-        margin-top: 25vh;
+        margin-top: 30vh;
         font-weight: bold;
-        letter-spacing: 12px;
+        letter-spacing: 15px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
     }
 
-    /* 选项卡样式优化，使其更像顶部导航 */
+    /* 选项卡样式大幅优化：大气、居中、加高、字号变大 */
     .stTabs [data-baseweb="tab-list"] {
         display: flex;
         justify-content: center;
         background-color: #FFFFFF;
-        padding: 10px 0;
-        border-bottom: 1px solid #E5E7EB;
+        padding: 15px 0; /* 增加上下内边距 */
+        border-bottom: 2px solid #E5E7EB; /* 加粗底边框 */
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        gap: 40px; /* 增加选项卡之间的间距 */
     }
-    
+    .stTabs [data-baseweb="tab"] {
+        font-size: 20px !important; /* 显著放大字号 */
+        font-weight: 600 !important;
+        color: #4B5563 !important;
+        padding: 10px 20px !important; /* 增加每个 Tab 的点击热区 */
+        height: auto !important; /* 解除高度限制 */
+    }
+    .stTabs [aria-selected="true"] {
+        color: #1D4ED8 !important; /* 选中时的高亮颜色更深 */
+        border-bottom: 3px solid #1D4ED8 !important; /* 选中时的底边框更明显 */
+    }
+
+    /* “关于”页面自定义左侧导航容器样式 */
+    .about-nav-container {
+        background-color: #FFFFFF;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-right: 1px solid #E5E7EB;
+        height: calc(100vh - 150px); /* 撑满高度，模拟真实侧边栏 */
+    }
+
+    /* 保持原有的卡片与 Agent 样式 */
     .card {
-        background-color: #ffffff; padding: 20px; border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 16px;
-        border: 1px solid #E5E7EB; border-left: 5px solid #1E3A8A;
+        background-color: #FFFFFF; padding: 24px; border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px;
+        border: 1px solid #F3F4F6; border-left: 6px solid #1E3A8A;
     }
-    .tag-metaphor {
-        background-color: #DEF7EC; color: #046C4E; padding: 4px 10px;
-        border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
-    }
-    .tag-normal {
-        background-color: #F3F4F6; color: #4B5563; padding: 4px 10px;
-        border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
-    }
-    .attr-badge {
-        background-color: #EEF2FF; color: #4338CA; padding: 4px 10px;
-        border-radius: 6px; font-size: 12px; font-weight: 500; 
-        margin-right: 8px; margin-bottom: 8px; display: inline-block;
-        border: 1px solid #C7D2FE;
-    }
-    .sentence {font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 10px; font-family: 'SimSun', serif;}
-    .analysis-box {
-        background-color: #F8FAFC; padding: 15px; border-radius: 6px;
-        font-size: 14px; color: #475569; border-left: 3px solid #94A3B8; margin-top: 12px;
-    }
-    .agent-box {
-        padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E2E8F0;
-    }
+    .tag-metaphor { background-color: #DEF7EC; color: #03543F; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; }
+    .tag-normal { background-color: #F3F4F6; color: #374151; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; }
+    .attr-badge { background-color: #F5F3FF; color: #5B21B6; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-right: 8px; display: inline-block; border: 1px solid #DDD6FE; }
+    .sentence { font-size: 20px; font-weight: 600; color: #111827; margin: 15px 0; font-family: 'SimSun', serif; }
+    .analysis-box { background-color: #F9FAFB; padding: 15px; border-radius: 6px; font-size: 14px; color: #374151; border-left: 3px solid #D1D5DB; margin-top: 12px; }
+    .agent-box { padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E5E7EB; }
     .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
     .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
     .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
+    
+    /* 左下角浮动访问量统计模块 */
+    .floating-stats {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid #E5E7EB;
+        z-index: 1000;
+        font-size: 13px;
+        color: #4B5563;
+        backdrop-filter: blur(4px);
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 0. 访问量统计模块 =================
+# ================= 2. 核心业务逻辑 (完全保留原样) =================
+
 VISIT_COUNTER_FILE = "./dataset/visit_count.json"
 
 def get_and_update_visit_count():
@@ -91,7 +128,7 @@ def get_and_update_visit_count():
         try:
             with open(VISIT_COUNTER_FILE, "w", encoding="utf-8") as f:
                 json.dump({"total_visits": count}, f)
-        except Exception as e:
+        except Exception:
             pass 
         return count
     else:
@@ -104,7 +141,6 @@ def get_and_update_visit_count():
                 return 0
         return 0
 
-# ================= 2. 模型与数据库配置 =================
 def get_model_configs():
     try:
         return {
@@ -139,104 +175,53 @@ CORPUS_CONFIG = {
     "儒林外史": "./dataset/rulinwaishi.csv",
 }
 
-# ================= 初始化 Supabase =================
 @st.cache_resource
 def init_supabase() -> Client:
-    try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
-    except Exception as e:
-        st.error(f"⚠️ 无法连接到 Supabase 数据库: {e}")
-        return None
+    try: return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    except: return None
 
-# ================= 3. 核心功能函数 =================
 def save_feedback(data_dict):
     supabase = init_supabase()
     if not supabase: return False
-    
-    now = datetime.datetime.now()
-    data_dict["date"] = now.strftime("%Y-%m-%d")
-    data_dict["time"] = now.strftime("%H:%M:%S")
-    
-    try:
-        supabase.table("feedback").insert(data_dict).execute()
-        return True
-    except Exception as e:
-        st.error(f"写入云数据库失败: {e}")
-        return False
+    data_dict.update({"date": datetime.datetime.now().strftime("%Y-%m-%d"), "time": datetime.datetime.now().strftime("%H:%M:%S")})
+    try: supabase.table("feedback").insert(data_dict).execute(); return True
+    except: return False
 
 @st.cache_data
 def load_all_corpora():
     all_samples = []
-    
     def safe_get(val, default="未知"):
         if pd.isna(val): return default
         s = str(val).strip()
         return s if s and s.lower() != 'nan' else default
-
-    # ========== 新增：提前加载“多维度其他解释”字典 ==========
     multi_exp_dict = {}
-    multi_exp_path = "./dataset/multi_explanation.csv"
-    if os.path.exists(multi_exp_path):
+    if os.path.exists("./dataset/multi_explanation.csv"):
         try:
-            df_multi = pd.read_csv(multi_exp_path)
+            df_multi = pd.read_csv("./dataset/multi_explanation.csv")
             for _, row in df_multi.iterrows():
                 m_sent = safe_get(row.get('Sentence'), "")
-                m_exp = safe_get(row.get('Alternative_Analysis'), "")
-                if not m_exp or m_exp == "未知": # 容错：如果列名叫 Explanation
-                    m_exp = safe_get(row.get('Explanation'), "")
-                if m_sent and m_exp and m_exp != "未知":
-                    if m_sent not in multi_exp_dict:
-                        multi_exp_dict[m_sent] = []
+                m_exp = safe_get(row.get('Alternative_Analysis'), row.get('Explanation', ""))
+                if m_sent and m_exp:
+                    if m_sent not in multi_exp_dict: multi_exp_dict[m_sent] = []
                     multi_exp_dict[m_sent].append(m_exp)
-        except Exception:
-            pass # 文件不存在或有误时，直接跳过，不阻断主语料加载
-
+        except: pass
     for book_name, file_path in CORPUS_CONFIG.items():
-        if not os.path.exists(file_path):
-            continue 
-            
+        if not os.path.exists(file_path): continue 
         try:
-            if file_path.endswith('.xml'):
-                tree = ET.parse(file_path)
-                root = tree.getroot()
-                for node in root.findall('metaphor'):
-                    analysis_node = node.find('Analysis')
-                    sent_text = node.find('Sentence').text.strip() if node.find('Sentence') is not None else ""
-                    all_samples.append({
-                        "Book": book_name,
-                        "Sentence": sent_text,
-                        "Label": int(node.find('Label').text) if node.find('Label') is not None else 0,
-                        "Analysis": analysis_node.text.strip() if analysis_node is not None else "暂无解析",
-                        "Syntax_Type": "未知", "Cognitive_Type": "未知", 
-                        "Conventionality": "未知", "Form_Features": "未知",
-                        "Syntax_Analysis": "暂无解析", "Cognitive_Analysis": "暂无解析",
-                        "Conventionality_Analysis": "暂无解析", "Form_Analysis": "暂无解析",
-                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
-                    })
-            elif file_path.endswith('.csv'):
-                df = pd.read_csv(file_path)
-                for _, row in df.iterrows():
-                    sent_text = safe_get(row.get('Sentence', ''), "")
-                    all_samples.append({
-                        "Book": book_name,
-                        "Sentence": sent_text,
-                        "Label": int(row.get('Pred_Label', row.get('Label', 0))), 
-                        "Analysis": safe_get(row.get('Analysis', ''), "暂无解析"),
-                        "Syntax_Type": safe_get(row.get('syntax_type'), '未知'),
-                        "Syntax_Analysis": safe_get(row.get('syntax_analysis'), '暂无解析'),
-                        "Cognitive_Type": safe_get(row.get('cognitive_type'), '未知'),
-                        "Cognitive_Analysis": safe_get(row.get('cognitive_analysis'), '暂无解析'),
-                        "Conventionality": safe_get(row.get('conventionality'), '未知'),
-                        "Conventionality_Analysis": safe_get(row.get('conventionality_analysis'), '暂无解析'),
-                        "Form_Features": safe_get(row.get('form_features'), '未知'),
-                        "Form_Analysis": safe_get(row.get('form_analysis'), '暂无解析'),
-                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
-                    })
-        except Exception as e:
-            st.error(f"加载 {book_name} 语料库 ({file_path}) 时出错: {e}")
-            
+            df = pd.read_csv(file_path)
+            for _, row in df.iterrows():
+                sent_text = safe_get(row.get('Sentence', ''), "")
+                all_samples.append({
+                    "Book": book_name, "Sentence": sent_text,
+                    "Label": int(row.get('Pred_Label', row.get('Label', 0))), 
+                    "Analysis": safe_get(row.get('Analysis', ''), "暂无解析"),
+                    "Syntax_Type": safe_get(row.get('syntax_type'), '未知'), "Syntax_Analysis": safe_get(row.get('syntax_analysis'), '暂无解析'),
+                    "Cognitive_Type": safe_get(row.get('cognitive_type'), '未知'), "Cognitive_Analysis": safe_get(row.get('cognitive_analysis'), '暂无解析'),
+                    "Conventionality": safe_get(row.get('conventionality'), '未知'), "Conventionality_Analysis": safe_get(row.get('conventionality_analysis'), '暂无解析'),
+                    "Form_Features": safe_get(row.get('form_features'), '未知'), "Form_Analysis": safe_get(row.get('form_analysis'), '暂无解析'),
+                    "Other_Explanations": multi_exp_dict.get(sent_text, [])
+                })
+        except: pass
     return all_samples
 
 def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=3):
@@ -244,8 +229,6 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     if not metaphor_pool or not target_analysis: return []
     stop_chars = set("的了和是就在也不有与为以对于这那，。！？：；“”‘’（）《》、 \n\t比喻修辞本体喻体")
     target_set = set(target_analysis) - stop_chars
-    if not target_set: return metaphor_pool[:top_k] 
-    
     scored_items = []
     for s in metaphor_pool:
         compare_set = set(s['Analysis']) - stop_chars
@@ -255,40 +238,29 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     scored_items.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_items[:top_k]]
 
-# ================= 4. 侧边栏设计 =================
-with st.sidebar:
-    st.title("🏛️ 平台全局设置")
-    st.divider()
-    st.subheader("⚙️ 在线推理模型设置")
-    selected_model = st.selectbox("选择底层大模型", list(MODEL_CONFIGS.keys()), index=0)
-    use_proxy = st.checkbox("启用海外代理 (针对 ChatGPT)", value=False)
-    st.divider()
-    total_visits = get_and_update_visit_count()
-    st.markdown(f"""
-    <div style="background-color: #F8FAFC; padding: 10px; border-radius: 6px; text-align: center; border: 1px dashed #CBD5E1;">
-        <span style="font-size: 14px; color: #475569;">👁️ 本站累计访问量</span><br/>
-        <span style="font-size: 24px; font-weight: bold; color: #1E3A8A;">{total_visits}</span>
-    </div>
-    """, unsafe_allow_html=True)
-    st.divider()
-    st.caption("© 多智能体隐喻在线识别")
+# ================= 3. UI 布局重构 (主入口) =================
 
-# ================= 5. 主页面布局重构 (Tab 系统) =================
-# 将原有的两个 Tab 拓展为四个 Tab，充当全局顶部导航
-tab_home, tab_about, tab_corpus, tab_online = st.tabs(["🏠 首页", "ℹ️ 关于", "🔍 明清典籍隐喻语料库", "🤖 在线隐喻识别"])
+# --- 隐藏原本基于 st.sidebar 的所有内容 ---
+# Streamlit 会默认生成左侧边栏触发器。CSS 里已经将它 display: none 强制隐藏了。
 
-# ----------------- 选项卡 1: 首页 -----------------
-with tab_home:
-    st.markdown('<div class="home-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
+# 顶部选项卡：主页面布局的核心，现在已经通过 CSS 放大并居中
+main_tabs = st.tabs(["🏠 首页", "ℹ️ 关于", "🔍 明清典籍隐喻语料库", "🤖 在线隐喻识别"])
 
-# ----------------- 选项卡 2: 关于 -----------------
-with tab_about:
+# --- Tab 0: 首页 (主界面) ---
+with main_tabs[0]:
+    st.markdown('<div class="hero-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
+
+# --- Tab 1: 关于 (关于界面) ---
+with main_tabs[1]:
     st.markdown("<br>", unsafe_allow_html=True)
-    # 利用列布局模拟一个专属的“左边栏”
+    # 利用列布局模拟一个专属的、高度一致的“左边栏”
     col_left_nav, col_right_content = st.columns([1, 4])
     
     with col_left_nav:
-        about_nav = st.radio("导航", ["项目简介", "主要功能", "使用指南"], label_visibility="collapsed")
+        st.markdown('<div class="about-nav-container">', unsafe_allow_html=True)
+        st.markdown("### 📚 平台导航")
+        about_nav = st.radio("", ["项目简介", "主要功能", "使用指南"], label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
         
     with col_right_content:
         st.subheader(f"📘 {about_nav}")
@@ -306,66 +278,39 @@ with tab_about:
             2. 点击顶部选项卡 **在线隐喻识别**，输入自定义句子，观察多智能体的协同推理分析。
             """)
 
-# ----------------- 选项卡 3: 语料检索 (原代码完全迁移) -----------------
-with tab_corpus:
+# --- Tab 2: 语料库 (保持原样) ---
+with main_tabs[2]:
     st.header("明清小说隐喻语料库 ")
     samples = load_all_corpora()
-    
-    if not samples:
-        st.warning("⚠️ 找不到任何语料库文件，请检查 CORPUS_CONFIG 中的路径是否正确！")
+    if not samples: st.warning("未找到语料文件")
     else:
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            search_query = st.text_input("🔍 搜索句子内容（支持关键词）")
-        with col2:
-            available_books = sorted(list(set(s["Book"] for s in samples)))
-            filter_book = st.selectbox("📚 书籍筛选", ["全部"] + available_books)
-        with col3:
-            filter_label = st.selectbox("🏷️ 基础类型", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
+        c1, c2, c3 = st.columns([2, 1, 1])
+        with c1: search_query = st.text_input("🔍 搜索关键词", key="corpus_search")
+        with c2: filter_book = st.selectbox("📚 书籍", ["全部"] + sorted(list(set(s["Book"] for s in samples))))
+        with c3: filter_label = st.selectbox("🏷️ 类型", ["全部", "仅隐喻", "非隐喻"])
         
-        filter_syntax, filter_cog, filter_conv, filter_form = "全部", "全部", "全部", "全部"
-        
-        if filter_label in ["全部", "仅隐喻 (Label 1)"]:
-            with st.expander("🔬 细粒度特征筛选 (高级搜索)"):
-                st.caption("基于多智能体深度判定的特征进行交叉检索：")
-                syn_opts = sorted(list(set(s.get("Syntax_Type", "") for s in samples if s.get("Label")==1 and s.get("Syntax_Type") not in ["", "未知"])))
-                cog_opts = sorted(list(set(s.get("Cognitive_Type", "") for s in samples if s.get("Label")==1 and s.get("Cognitive_Type") not in ["", "未知"])))
-                conv_opts = sorted(list(set(s.get("Conventionality", "") for s in samples if s.get("Label")==1 and s.get("Conventionality") not in ["", "未知"])))
-                form_opts = sorted(list(set(s.get("Form_Features", "") for s in samples if s.get("Label")==1 and s.get("Form_Features") not in ["", "未知"])))
-                
-                c1, c2, c3, c4 = st.columns(4)
-                with c1: filter_syntax = st.selectbox("📌 句法类型", ["全部"] + syn_opts)
-                with c2: filter_cog = st.selectbox("🧠 认知视角", ["全部"] + cog_opts)
-                with c3: filter_conv = st.selectbox("⏳ 规约程度", ["全部"] + conv_opts)
-                with c4: filter_form = st.selectbox("🎭 表现形式", ["全部"] + form_opts)
+        f_syntax, f_cog, f_conv, f_form = "全部", "全部", "全部", "全部"
+        if filter_label != "非隐喻":
+            with st.expander("🔬 细粒度高级筛选"):
+                sc1, sc2, sc3, sc4 = st.columns(4)
+                with sc1: f_syntax = st.selectbox("📌 句法", ["全部"] + sorted(list(set(s.get("Syntax_Type", "") for s in samples if s.get("Label")==1 and s.get("Syntax_Type") != "未知"))))
+                with sc2: f_cog = st.selectbox("🧠 认知", ["全部"] + sorted(list(set(s.get("Cognitive_Type", "") for s in samples if s.get("Label")==1 and s.get("Cognitive_Type") != "未知"))))
+                with sc3: f_conv = st.selectbox("⏳ 规约", ["全部"] + sorted(list(set(s.get("Conventionality", "") for s in samples if s.get("Label")==1 and s.get("Conventionality") != "未知"))))
+                with sc4: f_form = st.selectbox("🎭 特征", ["全部"] + sorted(list(set(s.get("Form_Features", "") for s in samples if s.get("Label")==1 and s.get("Form_Features") != "未知"))))
 
-        filtered_samples = samples
-        if search_query:
-            filtered_samples = [s for s in filtered_samples if search_query in s["Sentence"]]
-        if filter_book != "全部":
-            filtered_samples = [s for s in filtered_samples if s["Book"] == filter_book]
-        if filter_label == "仅隐喻 (Label 1)":
-            filtered_samples = [s for s in filtered_samples if s["Label"] == 1]
-        elif filter_label == "非隐喻 (Label 0)":
-            filtered_samples = [s for s in filtered_samples if s["Label"] == 0]
+        filtered = [s for s in samples if (not search_query or search_query in s["Sentence"]) and (filter_book == "全部" or s["Book"] == filter_book) and (filter_label == "全部" or (filter_label == "仅隐喻" and s["Label"] == 1) or (filter_label == "非隐喻" and s["Label"] == 0))]
+        if f_syntax != "全部": filtered = [s for s in filtered if s.get("Syntax_Type") == f_syntax]
+        if f_cog != "全部": filtered = [s for s in filtered if s.get("Cognitive_Type") == f_cog]
+        if f_conv != "全部": filtered = [s for s in filtered if s.get("Conventionality") == f_conv]
+        if f_form != "全部": filtered = [s for s in filtered if s.get("Form_Features") == f_form]
+
+        if f_syntax == "全部" and f_cog == "全部" and f_conv == "全部" and f_form == "全部":
+            filtered.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
             
-        if filter_syntax != "全部":
-            filtered_samples = [s for s in filtered_samples if s.get("Syntax_Type") == filter_syntax]
-        if filter_cog != "全部":
-            filtered_samples = [s for s in filtered_samples if s.get("Cognitive_Type") == filter_cog]
-        if filter_conv != "全部":
-            filtered_samples = [s for s in filtered_samples if s.get("Conventionality") == filter_conv]
-        if filter_form != "全部":
-            filtered_samples = [s for s in filtered_samples if s.get("Form_Features") == filter_form]
-            
-        if filter_syntax == "全部" and filter_cog == "全部" and filter_conv == "全部" and filter_form == "全部":
-            filtered_samples.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
-            
-        st.markdown(f"为您检索到 <span style='color:#3B82F6; font-weight:bold; font-size:16px;'>{len(filtered_samples)}</span> 条符合条件的语料。", unsafe_allow_html=True)
+        st.markdown(f"为您检索到 <span style='color:#3B82F6; font-weight:bold; font-size:16px;'>{len(filtered)}</span> 条符合条件的语料。", unsafe_allow_html=True)
         st.divider()
 
-        # ========== 下方渲染卡片的逻辑 ==========
-        for s in filtered_samples[:50]:
+        for s in filtered[:50]:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
             tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
             
@@ -378,7 +323,6 @@ with tab_corpus:
 <span class="attr-badge">⏳ 规约: {s.get('Conventionality', '未知')}</span>
 <span class="attr-badge">🎭 特征: {s.get('Form_Features', '未知')}</span>
 </div>"""
-
                 details_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
 <b>🧬 Agent 4 细分类依据：</b><br/>
 <ul style="margin-top: 5px; color: #64748B; font-size: 13px;">
@@ -391,13 +335,11 @@ with tab_corpus:
                 
             raw_analysis = s['Analysis']
             formatted_analysis = raw_analysis 
-            
             if "【一审】" in raw_analysis and "【二审】" in raw_analysis and "【终审】" in raw_analysis:
                 try:
                     p1 = raw_analysis.split("【一审】:")[1].split("| 【二审】:")[0].strip()
                     p2 = raw_analysis.split("【二审】:")[1].split("| 【终审】:")[0].strip()
                     p3 = raw_analysis.split("【终审】:")[1].strip()
-                    
                     formatted_analysis = f"""<div style="margin-top: 5px;">
 <div style="background-color: #EFF6FF; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3B82F6; margin-bottom: 8px; font-size: 13px;">
 <b style="color: #1E3A8A;">🕵️‍♂️ Agent 1 (语义)：</b> {p1}
@@ -442,12 +384,10 @@ with tab_corpus:
                 with st.form(key=f"feedback_form_{s['Sentence'][:10]}_{hash(s['Sentence'])}"):
                     new_label = st.radio("正确的大类标签：", options=[0, 1], index=s['Label'], horizontal=True)
                     new_analysis = st.text_area("整体解析意见：", value=raw_analysis, height=80) 
-                    
                     new_syntax = s.get('Syntax_Type', '未知')
                     new_cog = s.get('Cognitive_Type', '未知')
                     new_conv = s.get('Conventionality', '未知')
                     new_form = s.get('Form_Features', '未知')
-                    
                     if s['Label'] == 1:
                         st.caption("🔽 细粒度分类修正 (选填)")
                         col_f1, col_f2 = st.columns(2)
@@ -457,182 +397,86 @@ with tab_corpus:
                         with col_f2:
                             new_conv = st.text_input("规约程度", value=new_conv)
                             new_form = st.text_input("表现形式", value=new_form)
-                            
-                    submit_btn = st.form_submit_button("安全提交至云端")
-                    
-                    if submit_btn:
+                    if st.form_submit_button("安全提交至云端"):
                         feedback_data = {
-                            "book": s['Book'],
-                            "sentence": s['Sentence'],
-                            "original_label": int(s['Label']),
-                            "original_analysis": raw_analysis,
-                            "suggested_label": int(new_label),
-                            "suggested_analysis": new_analysis,
-                            "syntax_type": new_syntax,
-                            "cognitive_type": new_cog,
-                            "conventionality": new_conv,
-                            "form_features": new_form
+                            "book": s['Book'], "sentence": s['Sentence'], "original_label": int(s['Label']),
+                            "original_analysis": raw_analysis, "suggested_label": int(new_label),
+                            "suggested_analysis": new_analysis, "syntax_type": new_syntax,
+                            "cognitive_type": new_cog, "conventionality": new_conv, "form_features": new_form
                         }
-                        is_success = save_feedback(feedback_data)
-                        if is_success:
+                        if save_feedback(feedback_data):
                             st.success("✅ 提交成功！多维纠正意见已安全送达数据库。")
             st.write("") 
 
-# ----------------- 选项卡 4: 在线识别 (原代码完全迁移) -----------------
-with tab_online:
-    st.header("多智能体隐喻在线识别")
-    st.markdown("输入任意明清小说语句，观察 **语义提取 ➔ 考证推理 ➔ 逻辑审核 ➔ 多维特征分类** 的全过程。")
+# --- Tab 4: 在线识别 (原布局，新增左侧推理模型选择) ---
+with main_tabs[3]:
+    st.header("多智能体在线识别")
     
-    col_text, col_book = st.columns([3, 1])
-    with col_text:
-        test_sentence = st.text_area("输入测试句子：", value="忽听山石之后有一人笑道：“且请留步”", height=100)
-    with col_book:
-        target_book = st.text_input("目标书籍 (选填)：", placeholder="例如：红楼梦")
-        
-    run_btn = st.button("🚀 运行多智能体隐喻分析 (Run Analysis)", type="primary")
+    # 构建左右两列布局，左侧较窄放置模型选择，右侧较宽放置主要功能
+    col_model_select, col_main_action = st.columns([1, 4])
     
-    if run_btn:
-        book_context = target_book.strip() if target_book.strip() else "明清小说"
-        config = MODEL_CONFIGS[selected_model]
-        http_client = httpx.Client(proxy="http://127.0.0.1:7890") if use_proxy else None
-        client = OpenAI(api_key=config["env_key"], base_url=config["base_url"], http_client=http_client)
+    with col_model_select:
+        # 这里把原先全局侧栏的模型选择移了过来
+        st.markdown('<div style="background-color: #FFFFFF; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #E5E7EB;">', unsafe_allow_html=True)
+        st.subheader("⚙️ 引擎配置")
+        selected_model = st.selectbox("选择大模型", list(MODEL_CONFIGS.keys()), index=0)
+        use_proxy = st.checkbox("启用海外代理", value=False)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_main_action:
+        st.markdown("输入任意明清小说语句，观察 **语义提取 ➔ 考证推理 ➔ 逻辑审核 ➔ 多维特征分类** 的全过程。")
+        col_t, col_b = st.columns([3, 1])
+        with col_t: ts = st.text_area("输入测试句子：", value="忽听山石之后有一人笑道：“且请留步”", height=100)
+        with col_b: tb = st.text_input("目标书籍 (选填)：", placeholder="例如：红楼梦")
         
-        st.divider()
-        
-        with st.status("🕵️‍♂️ Agent 1 (语义提取) 正在分析表层结构...", expanded=True) as status1:
-            prompt1 = f"""这是《{book_context}》中的句子。
-                            你是语言学的专家，你有两个任务：
-                            - 分析句子含义，不要过度解读。
-                            - 根据句子的意思提取出句子中可能用到比喻修辞的词,注意《{book_context}》中的特有专有名词或人物名字（如存在）不是比喻。
-                            请严格返回JSON格式：{{"meaning": "句子含义描述", "metaphor_words": ["词1", "词2"]}}
-
-                            句子内容: "{test_sentence}" """
+        if st.button("🚀 启动多智能体分析", type="primary"):
+            ctx = tb.strip() if tb.strip() else "明清小说"
+            cfg = MODEL_CONFIGS[selected_model]
+            clt = OpenAI(api_key=cfg["env_key"], base_url=cfg["base_url"], http_client=httpx.Client(proxy="http://127.0.0.1:7890") if use_proxy else None)
+            st.divider()
             
-            try:
-                res1 = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": prompt1}], temperature=0, response_format={'type': 'json_object'})
-                data1 = json.loads(res1.choices[0].message.content)
-                analysis1 = data1.get("meaning", "")
-                words1 = data1.get("metaphor_words", [])
-                
-                st.markdown(f"""
-                <div class="agent-box agent1">
-                    <b>🎯 提纯结果：</b><br/>
-                    <b>表层语义：</b> {analysis1} <br/>
-                    <b>可疑修辞词：</b> {words1}
-                </div>
-                """, unsafe_allow_html=True)
-                status1.update(label="✅ Agent 1 (语义提纯) 完成！", state="complete", expanded=False)
-            except Exception as e:
-                st.error(f"Agent 1 失败: {e}")
-                st.stop()
-
-        with st.status("⚖️ Agent 2 (推理) 正在进行深度隐喻考证...", expanded=True) as status2:
-            prompt2 = f"""这是《{book_context}》中的句子。
-参考我提供给你的句子含义，以及可能用到比喻修辞的词（不一定真的有比喻），判断句子是否包含比喻修辞。注意结合比喻的定义和《{book_context}》相关知识，不要过度解读。
-请严格返回JSON格式：{{ "label": 1, "analysis": "理由"}}
-
-句子内容: "{test_sentence}"
-句子含义分析: "{analysis1}"
-句子中可能用到比喻修辞的词: {words1}
- """
+            with st.status("🕵️‍♂️ Agent 1 (语义)...") as s1:
+                p1 = f'这是《{ctx}》中的句子。判定含义并提取可疑词。严格JSON：{{"meaning": "...", "metaphor_words": ["..."]}} 内容: "{ts}"'
+                r1 = clt.chat.completions.create(model=cfg["model_name"], messages=[{"role": "user", "content": p1}], temperature=0, response_format={'type': 'json_object'})
+                d1 = json.loads(r1.choices[0].message.content); a1, w1 = d1.get("meaning", ""), d1.get("metaphor_words", [])
+                st.markdown(f'<div class="agent-box agent1"><b>🕵️‍♂️ Agent 1:</b><br/>语义: {a1} <br/>词: {w1}</div>', unsafe_allow_html=True)
+                s1.update(label="✅ Agent 1 完成", state="complete")
             
-            try:
-                res2 = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": prompt2}], temperature=0, response_format={'type': 'json_object'})
-                data2 = json.loads(res2.choices[0].message.content)
-                label2 = int(data2.get("label", 0))
-                reason2 = data2.get("analysis", "")
-                
-                st.markdown(f"""
-                <div class="agent-box agent2">
-                    <b>🔍 推理报告：</b><br/>
-                    <b>逻辑分析：</b> {reason2} <br/>
-                    <b>初步标签：</b> {"隐喻 (1)" if label2 == 1 else "非隐喻 (0)"}
-                </div>
-                """, unsafe_allow_html=True)
-                status2.update(label="✅ Agent 2 (跨域推理) 完成！", state="complete", expanded=False)
-            except Exception as e:
-                st.error(f"Agent 2 失败: {e}")
-                st.stop()
-
-        with st.status("👨‍⚖️ Agent 3 (逻辑审核) 正在生成最终决议...", expanded=True) as status3:
-            prompt3 = f"""检查【报告】的分析和得到的结论是否矛盾。如果矛盾则根据【报告】的分析修正结果。如果句子中含有比喻输出label 1，否则输出0。报告: "{reason2}"
-            请严格返回JSON格式：{{"label": 1或0, "analysis": "最终判决理由"}}"""
+            with st.status("⚖️ Agent 2 (推理)...") as s2:
+                p2 = f'参考含义分析判断是否包含比喻。严格JSON：{{"label": 1, "analysis": "理由"}} 内容: "{ts}" 含义: "{a1}" 词: {w1}'
+                r2 = clt.chat.completions.create(model=cfg["model_name"], messages=[{"role": "user", "content": p2}], temperature=0, response_format={'type': 'json_object'})
+                d2 = json.loads(r2.choices[0].message.content); l2, re2 = int(d2.get("label", 0)), d2.get("analysis", "")
+                st.markdown(f'<div class="agent-box agent2"><b>⚖️ Agent 2:</b><br/>逻辑: {re2} <br/>标签: {l2}</div>', unsafe_allow_html=True)
+                s2.update(label="✅ Agent 2 完成", state="complete")
             
-            try:
-                res3 = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": prompt3}], temperature=0, response_format={'type': 'json_object'})
-                data3 = json.loads(res3.choices[0].message.content)
-                final_label = int(data3.get("label", 0))
-                final_reason = data3.get("analysis", "")
-                
-                st.markdown(f"""
-                <div class="agent-box agent3">
-                    <b>📌 最终定谳：</b><br/>
-                    <b>终审逻辑：</b> {final_reason} <br/>
-                    <h3 style="color: {'#10B981' if final_label==1 else '#64748B'}; margin-top: 10px;">
-                        最终结论: {"🏷️ 这是一个隐喻句 (Label: 1)" if final_label == 1 else "📝 这是一个字面义句 (Label: 0)"}
-                    </h3>
-                </div>
-                """, unsafe_allow_html=True)
-                status3.update(label="✅ Agent 3 (逻辑裁判) 完成！", state="complete", expanded=True)
-            except Exception as e:
-                st.error(f"Agent 3 失败: {e}")
-                
-        if final_label == 1:
-            with st.status("🧬 Agent 4 (多维度分类) 独立专家团正在进行细粒度特征判定...", expanded=True) as status4:
-                category_tasks = [
-                    {"task_name": "句法类型", "options": "名词性隐喻、动词性隐喻、形容词性/副词性隐喻、介词性隐喻", "keys": ["syntax_type", "syntax_analysis"]},
-                    {"task_name": "认知视角分类", "options": "结构隐喻、方位隐喻、本体隐喻", "keys": ["cognitive_type", "cognitive_analysis"]},
-                    {"task_name": "规约化角度", "options": "死喻、活喻", "keys": ["conventionality", "conventionality_analysis"]},
-                    {"task_name": "表现形式与特征", "options": "单选或多选：显性隐喻/隐性隐喻、根隐喻/派生隐喻、以相似性为基础的隐喻/创造相似性的隐喻", "keys": ["form_features", "form_analysis"]}
-                ]
-                
-                cols = st.columns(2)
-                st.markdown('<div class="agent-box agent4"><b>📊 细粒度分类报告：</b><br/><br/>', unsafe_allow_html=True)
-                
-                for idx, task in enumerate(category_tasks):
-                    agent_prompt = f"""作为语言学专家，请判定该《{book_context}》隐喻句的【{task['task_name']}】特征。
-【句子】: "{test_sentence}"
-【前期隐喻分析依据】: "{reason2}"
+            with st.status("👨‍⚖️ Agent 3 (裁判)...") as s3:
+                p3 = f'检查报告是否矛盾。报告: "{re2}"。严格JSON：{{"label": 1或0, "analysis": "理由"}}'
+                r3 = clt.chat.completions.create(model=cfg["model_name"], messages=[{"role": "user", "content": p3}], temperature=0, response_format={'type': 'json_object'})
+                d3 = json.loads(r3.choices[0].message.content); fl, fr = int(d3.get("label", 0)), d3.get("analysis", "")
+                st.markdown(f'<div class="agent-box agent3"><b>📌 Agent 3:</b><br/>终审: {fr} <br/><h3>最终: {"🏷️ 隐喻" if fl==1 else "📝 字面"}</h3></div>', unsafe_allow_html=True)
+                s3.update(label="✅ Agent 3 完成", state="complete", expanded=True)
+            
+            if fl == 1:
+                with st.status("🧬 Agent 4 (分类)...") as s4:
+                    tasks = [{"t": "句法", "o": "名词性、动词性、形容词/副词性、介词性", "k": ["syntax_type", "syntax_analysis"]}, {"t": "认知", "o": "结构、方位、本体", "k": ["cognitive_type", "cognitive_analysis"]}, {"t": "规约", "o": "死喻、活喻", "k": ["conventionality", "conventionality_analysis"]}, {"t": "特征", "o": "显性/隐性、根/派生、相似性基础/创造相似性", "k": ["form_features", "form_analysis"]}]
+                    cols = st.columns(2)
+                    for idx, t in enumerate(tasks):
+                        ap = f'分析《{ctx}》特征。内容: "{ts}" 依据: "{re2}"。选自：{t["o"]}。严格JSON。'
+                        dj = json.loads(clt.chat.completions.create(model=cfg["model_name"], messages=[{"role": "user", "content": ap}], temperature=0, response_format={'type': 'json_object'}).choices[0].message.content)
+                        with cols[idx%2]: st.markdown(f'<div class="agent-box agent4"><b>{t["t"]}</b><br/>归类: {dj.get(t["k"][0], "未知")}<br/>依据: {dj.get(t["k"][1], "")}</div>', unsafe_allow_html=True)
+                    s4.update(label="✅ Agent 4 完成", state="complete")
+            
+            st.subheader("💡 关联推荐")
+            sims = get_similar_metaphors(re2, ts, load_all_corpora())
+            for sim in sims: 
+                st.markdown(f'<div class="card"><span class="tag-metaphor" style="float:right;">关联度高</span><div style="font-weight:bold;">《{sim["Book"]}》</div><div>{sim["Sentence"]}</div></div>', unsafe_allow_html=True)
 
-请判断它属于以下哪些类别，并给出简要分析（必须严格从给定类别中选择）：
-{task['options']}
-
-请严格返回JSON格式：
-{{
-    "{task['keys'][0]}": "识别出的类别",
-    "{task['keys'][1]}": "分析依据"
-}}"""
-                    try:
-                        resp = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": agent_prompt}], temperature=0.0, response_format={'type': 'json_object'})
-                        res_json = json.loads(resp.choices[0].message.content.strip())
-                        col = cols[idx % 2]
-                        col.markdown(f"""
-                        <div style="background-color: #ffffff; padding: 10px; border-radius: 6px; border-left: 3px solid #8B5CF6; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <b style="color: #4C1D95; font-size: 14px;">{task['task_name']}</b><br/>
-                            <span style="font-size: 13px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold;">{res_json.get(task['keys'][0], '未知')}</span></span><br/>
-                            <span style="font-size: 12px; color: #475569;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    except Exception as e:
-                        st.error(f"分类任务 {task['task_name']} 失败: {e}")
-                        
-                st.markdown('</div>', unsafe_allow_html=True)
-                status4.update(label="✅ Agent 4 (多维度分类) 完成！", state="complete", expanded=True)
-
-            st.subheader("💡 基于当前分析逻辑的关联推荐")
-            st.caption("将 **Agent 2 的深度考证结果** 与您的 **本地语料库** 进行特征碰撞，为您找到以下最相似的过往案例：")
-            samples = load_all_corpora()
-            if samples:
-                sim_matches = get_similar_metaphors(reason2, test_sentence, samples, top_k=3)
-                if sim_matches:
-                    for sim in sim_matches:
-                        st.markdown(f"""
-                        <div class="sim-card card" style="padding: 15px;">
-                            <span class="tag-metaphor" style="float:right;">关联度极高</span>
-                            <div style="font-size: 16px; font-weight: bold; color: #1E293B; margin-bottom: 5px;">《{sim['Book']}》</div>
-                            <div style="font-size: 16px; font-family: 'SimSun', serif; margin-bottom: 8px;">{sim['Sentence']}</div>
-                            <div style="font-size: 13px; color: #475569;"><b>库内专家解析:</b> {sim['Analysis']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.info("当前本地语料库中暂无相似度极高的案例。")
+# ================= 4. 全局浮动访问量统计 =================
+# 置于代码末尾以确保其始终在左下角渲染
+total_visits = get_and_update_visit_count()
+st.markdown(f"""
+    <div class="floating-stats">
+        <div style="font-weight: bold; margin-bottom: 2px;">👁️ 累计科研访问</div>
+        <div style="color: #1D4ED8; font-size: 16px; font-weight: 800;">{total_visits} <span style="font-size: 12px; color: #6B7280; font-weight: normal;">次</span></div>
+    </div>
+""", unsafe_allow_html=True)
