@@ -25,7 +25,7 @@ st.markdown("""
     
     /* 彻底隐藏 Streamlit 默认的全局侧边栏和顶部装饰 */
     [data-testid="collapsedControl"] { display: none !important; }
-    header {visibility: hidden;}
+    header[data-testid="stHeader"] { display: none !important; }
     .main .block-container {padding-top: 0rem; padding-bottom: 5rem;}
 
     /* ================= 字体与排版大幅放大，告别拘谨 ================= */
@@ -43,42 +43,42 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* ================= 顶部选项卡吸顶与大气化 ================= */
+    /* ================= 顶部选项卡吸顶与居中 (核心修复) ================= */
     div[data-testid="stTabs"] {
         position: relative;
     }
-    /* 关键：让 Tab 栏固定在顶部 */
-    div[data-testid="stTabs"] > div:first-child {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 0px;
-        z-index: 99999;
-        background-color: #FAF9F6;
-        padding-top: 15px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #E5E7EB;
-        display: flex;
-        justify-content: center;
-        gap: 30px;
+    div[data-testid="stTabs"] > div:first-of-type {
+        display: flex !important;
+        justify-content: center !important; /* 强制居中 */
+        position: -webkit-sticky !important;
+        position: sticky !important; /* 吸顶属性 */
+        top: 0px !important;
+        z-index: 99999 !important; /* 保证在最上层 */
+        background-color: #FAF9F6 !important; /* 背景色防穿透 */
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+        border-bottom: 2px solid #E5E7EB !important;
+        width: 100% !important;
     }
-    div[data-testid="stTabs"] [data-baseweb="tab"] {
+    div[data-testid="stTabs"] button {
         font-size: 22px !important; /* 选项卡字号大幅提升 */
         font-weight: 600 !important;
         color: #6B7280 !important;
         padding: 12px 24px !important;
-        height: auto !important;
+        margin: 0 15px !important; /* 增加选项卡间距 */
     }
     div[data-testid="stTabs"] [aria-selected="true"] {
         color: #1E3A8A !important;
         border-bottom: 4px solid #1E3A8A !important;
     }
 
-    /* ================= 首页大标题 ================= */
+    /* ================= 首页大标题绝对居中 ================= */
     .hero-title {
+        width: 100%;
+        text-align: center !important;
         font-family: 'SimSun', 'STSong', serif;
         font-size: 5rem;
         color: #1F2937;
-        text-align: center;
         margin-top: 25vh;
         font-weight: bold;
         letter-spacing: 15px;
@@ -155,7 +155,7 @@ def get_and_update_visit_count():
 def get_model_configs():
     try:
         return {
-            "Deepseek-V3.2(推荐)": {
+            "Deepseek-V3 (推荐)": {
                 "base_url": "https://api.deepseek.com",
                 "model_name": "deepseek-chat",
                 "env_key": st.secrets["deepseek_api_key"]
@@ -249,9 +249,9 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
     scored_items.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_items[:top_k]]
 
-# ================= 3. 全局页面布局重构 (主入口) =================
+# ================= 3. 全局页面布局重构 (Tab 系统) =================
 
-# 顶部悬浮选项卡：主页面布局的核心
+# 顶部悬浮选项卡
 tab_home, tab_about, tab_corpus, tab_online = st.tabs(["🏠 首页", "ℹ️ 关于", "🔍 明清典籍隐喻语料库", "🤖 在线隐喻识别"])
 
 # ----------------- 选项卡 1: 首页 -----------------
@@ -261,7 +261,7 @@ with tab_home:
 # ----------------- 选项卡 2: 关于 -----------------
 with tab_about:
     st.markdown("<br>", unsafe_allow_html=True)
-    # 使用纯净的列布局来模拟左边栏，解决之前 HTML 包裹导致的错位问题
+    # 使用纯净的列布局，不使用任何会干扰组件的 HTML div 包裹
     col_left_nav, col_right_content = st.columns([1, 4], gap="large")
     
     with col_left_nav:
@@ -272,18 +272,26 @@ with tab_about:
         st.markdown(f"<h2 style='color:#1E3A8A;'>📘 {about_nav}</h2>", unsafe_allow_html=True)
         st.divider()
         if about_nav == "项目简介":
-            st.write("本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。")
+            st.markdown("<p style='font-size:18px; line-height:1.8; color:#374151;'>本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
         elif about_nav == "主要功能":
             st.markdown("""
-            - **细粒度隐喻语料检索**：支持多维度的隐喻特征交叉检索与展示。
-            - **多智能体三审制在线识别**：通过语义提取、深度推理、逻辑裁判三步完成自动识别。
-            - **自动特征分类与专家共创**：支持细粒度分类以及专家的在线反馈与纠错。
-            """)
+            <div style='font-size:18px; line-height:1.8; color:#374151;'>
+            <ul>
+            <li><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li>
+            <li><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li>
+            <li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
         elif about_nav == "使用指南":
             st.markdown("""
-            1. 点击顶端选项卡 **明清典籍隐喻语料库**，进行库内数据探索与检索。
-            2. 点击顶端选项卡 **在线隐喻识别**，输入自定义句子，观察多智能体的协同推理分析。
-            """)
+            <div style='font-size:18px; line-height:1.8; color:#374151;'>
+            <ol>
+            <li>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li>
+            <li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li>
+            </ol>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ----------------- 选项卡 3: 语料检索 -----------------
 with tab_corpus:
@@ -293,12 +301,11 @@ with tab_corpus:
     if not samples:
         st.warning("⚠️ 找不到任何语料库文件，请检查 CORPUS_CONFIG 中的路径是否正确！")
     else:
-        # 【修改要求】搜索区域完全居中
+        # 居中布局：左右留白，中间放搜索框
         _, col_search_center, _ = st.columns([1, 6, 1])
         with col_search_center:
             search_query = st.text_input("🔍 搜索句子内容（支持关键词）")
             
-            # 过滤条件放在搜索框下方两列
             col_filter1, col_filter2 = st.columns(2)
             with col_filter1:
                 available_books = sorted(list(set(s["Book"] for s in samples)))
@@ -343,7 +350,7 @@ with tab_corpus:
         if filter_syntax == "全部" and filter_cog == "全部" and filter_conv == "全部" and filter_form == "全部":
             filtered_samples.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
             
-        st.markdown(f"<br><div style='text-align:center; font-size:18px;'>为您检索到 <span style='color:#1D4ED8; font-weight:bold; font-size:22px;'>{len(filtered_samples)}</span> 条符合条件的语料。</div>", unsafe_allow_html=True)
+        st.markdown(f"<br><div style='text-align:center; font-size:18px;'>为您检索到 <span style='color:#1D4ED8; font-weight:bold; font-size:24px;'>{len(filtered_samples)}</span> 条符合条件的语料。</div>", unsafe_allow_html=True)
         st.divider()
 
         # ========== 下方渲染卡片的逻辑 ==========
@@ -440,7 +447,7 @@ with tab_corpus:
                             new_conv = st.text_input("规约程度", value=new_conv)
                             new_form = st.text_input("表现形式", value=new_form)
                             
-                    submit_btn = st.form_submit_button("安全提交至云端")
+                    submit_btn = st.form_submit_button("安全提交至云端", use_container_width=True)
                     
                     if submit_btn:
                         feedback_data = {
@@ -464,7 +471,7 @@ with tab_corpus:
 with tab_online:
     st.markdown("<br><h2 style='text-align:center; color:#1F2937; margin-bottom:30px;'>多智能体隐喻在线识别</h2>", unsafe_allow_html=True)
     
-    # 【修改要求】将侧边栏模型配置移动到该页面的左列布局中，使用原生 columns 防止 CSS 溢出
+    # 使用纯原生布局，坚决不用 HTML div 包裹组件
     col_model_select, col_main_action = st.columns([1, 4], gap="large")
     
     with col_model_select:
@@ -473,7 +480,7 @@ with tab_online:
         use_proxy = st.checkbox("启用海外代理", value=False)
 
     with col_main_action:
-        st.markdown("<p style='font-size:18px; color:#4B5563;'>输入任意明清小说语句，观察 <b>语义提取 ➔ 考证推理 ➔ 逻辑审核 ➔ 多维特征分类</b> 的全过程。</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:18px; color:#4B5563; margin-bottom: 20px;'>输入任意明清小说语句，观察 <b>语义提取 ➔ 考证推理 ➔ 逻辑审核 ➔ 多维特征分类</b> 的全过程。</p>", unsafe_allow_html=True)
         
         col_t, col_b = st.columns([3, 1])
         with col_t:
@@ -630,7 +637,6 @@ with tab_online:
                         st.info("当前本地语料库中暂无相似度极高的案例。")
 
 # ================= 4. 全局浮动访问量统计 =================
-# 【修改要求】放置在页面左下角
 total_visits = get_and_update_visit_count()
 st.markdown(f"""
     <div class="floating-stats">
