@@ -34,7 +34,7 @@ st.markdown("""
     .main .block-container {padding-top: 0rem; padding-bottom: 5rem;}
 
     /* ================= 1. 全局字号放大，告别拘谨 ================= */
-    .stMarkdown p, .stRadio label, .stSelectbox label, .stCheckbox label, .stTextInput label, .stTextArea label {
+    .stMarkdown p, .stSelectbox label, .stCheckbox label, .stTextInput label, .stTextArea label {
         font-size: 18px !important;
         color: #374151;
     }
@@ -52,6 +52,27 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
+    /* ================= 新增：单选框(Radio)与导航排版大幅放大舒展 ================= */
+    div[role="radiogroup"] {
+        gap: 24px !important; /* 选项间距大幅拉开 */
+        padding: 10px 0 20px 0 !important;
+    }
+    div[role="radiogroup"] p {
+        font-size: 22px !important; /* 文字变大 */
+        font-weight: 500 !important;
+        color: #1F2937 !important;
+        letter-spacing: 1px !important;
+    }
+    /* 将单选框圆圈按比例放大以匹配大字号文字 */
+    div[data-baseweb="radio"] > div:first-child {
+        height: 24px !important;
+        width: 24px !important;
+    }
+    div[data-baseweb="radio"] > div:first-child > div {
+        height: 12px !important; /* 中心圆点同比例放大 */
+        width: 12px !important;
+    }
+
     /* ================= 2. 完美的吸顶导航栏 ================= */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] {
         position: -webkit-sticky !important;
@@ -64,68 +85,33 @@ st.markdown("""
         border-bottom: 2px solid #E5E7EB !important;
     }
     
-    /* ================= 3. 首页大标题与圆角大菱形矩阵菜单 (终极安全防倾斜版) ================= */
+    /* ================= 3. 首页大标题与 2x2 微软风浮标矩阵 ================= */
     .hero-title {
         width: 100%;
         text-align: center !important;
         font-family: 'SimSun', 'STSong', serif;
         font-size: 5rem;
         color: #1F2937;
-        margin-top: 15vh;
+        margin-top: 18vh;
         margin-bottom: 8vh;
         font-weight: bold;
         letter-spacing: 15px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* 核心修复：利用严格的子代选择器，确保只旋转拥有 marker 的特定小容器，绝不影响外层页面 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-        width: 350px !important;
-        margin: 0 auto 12vh auto !important;
-        transform: rotate(45deg) !important; /* 旋转成大菱形 */
-        padding: 0 !important;
-    }
-    /* 调整内部间距使 4 个方块紧密拼合 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] {
-        gap: 20px !important;
-    }
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
-        gap: 20px !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    /* 按钮本身变为圆角方块 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
-        width: 160px !important;
-        height: 160px !important;
-        border-radius: 40px !important; /* 超大圆角 */
-        box-shadow: 0 10px 25px rgba(0,0,0,0.06) !important;
-        border: 2px solid #E5E7EB !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        padding: 0 !important;
-    }
-    /* 悬浮微动效 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0 15px 35px rgba(59,130,246,0.2) !important;
-        border-color: #3B82F6 !important;
-        background-color: #EFF6FF !important;
-    }
-    /* 内部文字反向旋转，以确保文字水平正视 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div {
-        transform: rotate(-45deg) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
-        font-size: 26px !important; 
-        font-weight: 900 !important;
+    div[data-testid="stElementContainer"]:has(.home-grid-marker) ~ div[data-testid="stHorizontalBlock"] button {
+        height: 160px;
+        font-size: 24px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+        border: 1px solid #E5E7EB !important;
+        background-color: #FFFFFF !important;
         color: #1E3A8A !important;
-        margin: 0 !important;
-        line-height: 1.4 !important;
+    }
+    div[data-testid="stElementContainer"]:has(.home-grid-marker) ~ div[data-testid="stHorizontalBlock"] button:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        border-color: #3B82F6 !important;
     }
 
     /* ================= 4. 卡片与结果输出区 ================= */
@@ -318,39 +304,41 @@ def render_top_nav():
 # ================= 4. 各页面视图渲染 =================
 
 if st.session_state.page == 'home':
-    # 首页无顶栏，只有超大标题和大菱形矩阵菜单
+    # 首页无顶栏，只有标题和微软风 2x2 矩阵
     st.markdown('<div class="hero-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
     
-    with st.container():
-        st.markdown('<div class="rhombus-menu-marker"></div>', unsafe_allow_html=True)
-        # 2列 x 2行 的结构，受外层 CSS 旋转控制
-        r1c1, r1c2 = st.columns(2)
+    st.markdown('<div class="home-grid-marker"></div>', unsafe_allow_html=True)
+    _, col_grid, _ = st.columns([1, 2, 1])
+    
+    with col_grid:
+        r1c1, r1c2 = st.columns(2, gap="large")
         with r1c1:
             if st.button("🏠\n首页", use_container_width=True): pass 
         with r1c2:
-            if st.button("ℹ️\n关于", use_container_width=True): 
+            if st.button("ℹ️\n关于平台", use_container_width=True): 
                 st.session_state.page = 'about'
                 st.rerun()
                 
-        r2c1, r2c2 = st.columns(2)
+        r2c1, r2c2 = st.columns(2, gap="large")
         with r2c1:
-            if st.button("🔍\n语料库", use_container_width=True): 
+            if st.button("🔍\n明清典籍隐喻语料库", use_container_width=True): 
                 st.session_state.page = 'corpus'
                 st.rerun()
         with r2c2:
-            if st.button("🤖\n在线识别", use_container_width=True): 
+            if st.button("🤖\n在线隐喻识别", use_container_width=True): 
                 st.session_state.page = 'online'
                 st.rerun()
 
 elif st.session_state.page == 'about':
     render_top_nav()
     
-    # 原生列布局防止跑版
+    # 使用原生 st.columns 和 st.container(border=True) 防止内容跑出框外
     col_left_nav, col_right_content = st.columns([1, 3], gap="large")
     
     with col_left_nav:
         with st.container(border=True):
-            st.markdown("<h3 style='color:#1F2937; margin-bottom: 15px;'>📚 导航</h3>", unsafe_allow_html=True)
+            # 将标题加了一条淡淡的下划线，彻底告别“小气”的排版
+            st.markdown("<h2 style='color:#1F2937; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #E5E7EB;'>📚 平台导航</h2>", unsafe_allow_html=True)
             about_nav = st.radio("关于导航", ["项目简介", "主要功能", "使用指南"], label_visibility="collapsed")
             
     with col_right_content:
@@ -563,7 +551,7 @@ elif st.session_state.page == 'online':
     
     with col_model_select:
         with st.container(border=True):
-            st.markdown("<h3 style='color:#1F2937; margin-bottom: 20px;'>⚙️ 引擎配置</h3>", unsafe_allow_html=True)
+            st.markdown("<h2 style='color:#1F2937; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #E5E7EB;'>⚙️ 引擎配置</h2>", unsafe_allow_html=True)
             selected_model = st.selectbox("核心大模型", list(MODEL_CONFIGS.keys()), index=0)
             use_proxy = st.checkbox("启用海外代理", value=False)
 
