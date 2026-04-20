@@ -252,56 +252,53 @@ st.markdown("""
         z-index: 1000;
         backdrop-filter: blur(4px);
     }
-    /* ================= 专门针对手机端的响应式适配 ================= */
+/* ================= 手机端首页菱形矩阵完美修复 ================= */
     @media (max-width: 768px) {
-        /* 1. 缩小首页标题字号，防止换行错乱 */
+        /* 1. 强制列布局在手机上也不要垂直堆叠，保持水平横向 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important; /* 强制横向排列 */
+            flex-wrap: nowrap !important;
+            justify-content: center !important;
+            width: 100% !important;
+            gap: 15px !important; /* 缩小间距适应小屏 */
+        }
+        
+        /* 2. 确保两列各占一半宽度，不要撑开 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
+            width: 50% !important;
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+        }
+
+        /* 3. 缩小按钮尺寸，防止在手机上因太大而导致排列变形 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
+            width: 120px !important; 
+            height: 120px !important;
+            border-radius: 30px !important;
+        }
+        
+        /* 4. 调整旋转容器的整体宽度和缩放 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
+            width: 260px !important;
+            transform: rotate(45deg) scale(0.85) !important; /* 稍微缩小整体比例 */
+            margin: 0 auto !important;
+            padding-bottom: 20px !important;
+        }
+
+        /* 5. 缩小按钮内的字号 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
+            font-size: 20px !important;
+        }
+
+        /* 其他移动端通用优化：缩小标题，隐藏多余间距 */
         .hero-title {
-            font-size: 2.5rem !important;
+            font-size: 2.8rem !important;
             margin-top: 10vh !important;
             letter-spacing: 5px !important;
         }
-
-        /* 2. 首页菱形菜单适配：在手机上缩小比例，防止超出屏幕 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-            width: 280px !important; /* 缩小容器宽度 */
-            transform: rotate(45deg) scale(0.5) !important; /* 整体缩放 0.8 倍 */
-            margin: 0 auto 5vh auto !important;
-        }
-        
-        /* 3. 顶栏适配：手机端取消固定悬浮（Fixed），改为随页面滚动，防止遮挡手机小屏幕 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
-            position: relative !important; /* 取消固定 */
-            box-shadow: none !important;
-            padding: 5px !important;
-        }
-        
-        /* 4. 标题与导航：在手机上让它们垂直排列，不再强行挤在一行 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div {
-            flex-direction: column !important;
-            max-width: 100% !important;
-        }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
-            font-size: 20px !important; /* 缩小顶栏标题 */
-            text-align: center !important;
-            margin-bottom: 10px !important;
-        }
-
-        /* 5. 页面边距：手机端取消左右留白，让内容铺满 */
         .main .block-container {
-            padding-top: 20px !important; /* 取消为了悬浮栏预留的大空白 */
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-        }
-
-        /* 6. 句子卡片：手机端宽度恢复到 95%，不再缩短 */
-        .card {
-            width: 95% !important;
-            padding: 15px !important;
-        }
-
-        /* 7. 隐藏左下角访问统计：手机端屏幕太小，浮窗会遮挡操作按钮 */
-        .floating-stats {
-            display: none !important;
+            padding-top: 20px !important;
         }
     }
 </style>
