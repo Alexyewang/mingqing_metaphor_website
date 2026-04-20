@@ -81,20 +81,33 @@ st.markdown("""
         padding-bottom: 5rem !important;
     }
 
-    /* ================= 2. 真正的全局悬浮顶栏 (Navbar) ================= */
-    div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] {
+/* ================= 1. 强制页面内容下移 ================= */
+    .main .block-container {
+        padding-top: 150px !important; /* 增加空间，防止固定栏遮挡正文 */
+    }
+
+    /* ================= 2. 增强版悬浮顶栏 (修复滑动消失问题) ================= */
+    /* 锁定包含导航栏的容器，使其固定在窗口顶部 */
+    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
         position: fixed !important;
-        top: 0 !important;
+        top: 0px !important;
         left: 0 !important;
-        width: 100vw !important; 
+        right: 0 !important;
+        width: 100% !important;
+        background-color: rgba(255, 255, 255, 0.98) !important;
+        backdrop-filter: blur(12px) !important;
         z-index: 999999 !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(10px) !important;
-        padding: 15px 0 !important; 
-        /* 核心修改：加粗加深底边框，作为一条明显的全局分割线 */
-        border-bottom: 2px solid #CBD5E1 !important; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; 
-        align-items: center !important; 
+        border-bottom: 2px solid #E5E7EB !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+        padding: 10px 0 !important;
+    }
+
+    /* 内部对齐：让标题和选项卡向中间靠拢（限制最大宽度与卡片一致） */
+    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div {
+        max-width: 1200px !important; /* 这里的宽度应与句子卡片宽度对应 */
+        margin: 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button {
@@ -356,14 +369,16 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
 # ================= 3. 路由与全局顶栏功能 =================
 def render_top_nav():
     """渲染原生且能吸顶的顶部导航栏"""
+    # 放置定位锚点
     st.markdown('<div class="sticky-nav-marker"></div>', unsafe_allow_html=True)
     
-    # 核心修改：首尾各加一个占位列(值为1的列)，把标题和选项卡往中间挤，对齐下方卡片宽度
-    spacer_left, col_title, c1, c2, c3, c4, spacer_right = st.columns([1, 4.5, 1, 1, 1.2, 1.5, 1], gap="small")
+    # 重新划分列比例：[左侧大标题, 关于, 语料库, 在线识别, 首页]
+    # 通过左右 Spacer 占位列，把内容往中间挤
+    _, col_title, c1, c2, c3, c4, _ = st.columns([0.5, 4, 1.2, 1.5, 1.5, 1.2, 0.5], gap="small")
     
     with col_title:
-        # 核心修改：放大平台名称字号为 28px，并使用 h2
-        st.markdown("<h2 style='margin:0; padding-top:2px; color:#1E3A8A; font-weight:bold; letter-spacing: 2px; font-size: 28px;'>明清典籍隐喻计算平台</h2>", unsafe_allow_html=True)
+        # 增大左上角标题字号 (32px)
+        st.markdown("<h2 style='margin:0; color:#1E3A8A; font-weight:900; font-size: 32px; letter-spacing: -1px;'>明清典籍隐喻计算平台</h2>", unsafe_allow_html=True)
 
     pages = {
         "🏠 首页": "home",
@@ -372,15 +387,17 @@ def render_top_nav():
         "🤖 在线识别": "online"
     }
     
-    # 右侧渲染四个选项卡
-    for col, (label, p) in zip([c1, c2, c3, c4], pages.items()):
+    # 右侧渲染四个选项卡按钮
+    for col, (label, p) in zip([c4, c1, c2, c3], pages.items()): # 顺序调整
         with col:
-            # 选中的页面使用 primary 样式高亮
             is_active = st.session_state.page == p
             btn_type = "primary" if is_active else "secondary"
-            if st.button(label, key=f"nav_{p}", use_container_width=True):
+            if st.button(label, key=f"nav_{p}", use_container_width=True, type=btn_type):
                 st.session_state.page = p
                 st.rerun()
+    
+    # 在顶栏下方增加一道深色分割线 (Divider)
+    st.markdown("<div style='height:2px; background-color:#CBD5E1; margin: 10px auto; max-width:1200px;'></div>", unsafe_allow_html=True)
 
 
 # ================= 4. 各页面视图渲染 =================
