@@ -20,7 +20,7 @@ if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
 # ================= 1.5 动态背景图加载逻辑 =================
-bg_path = "bg.jpg" # 确保背景图已命名为 bg.jpg 并放在同级目录
+bg_path = "bg.png" # 确保背景图已命名为 bg.jpg 并放在同级目录
 if os.path.exists(bg_path):
     with open(bg_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
