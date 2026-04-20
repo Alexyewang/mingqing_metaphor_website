@@ -71,16 +71,28 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-    /* ================= 2. 完美的吸顶导航栏 ================= */
+/* ================= 1. 顶部导航浮标化 ================= */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] {
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0px !important;
-        z-index: 99999 !important;
-        background-color: #FAF9F6 !important;
-        padding-top: 15px !important;
-        padding-bottom: 15px !important;
-        border-bottom: 2px solid #E5E7EB !important;
+        position: fixed !important;
+        top: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: auto !important;
+        min-width: 600px;
+        z-index: 999999 !important;
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        padding: 10px 30px !important;
+        border-radius: 50px !important; /* 胶囊浮标状 */
+        border: 1px solid rgba(229, 231, 235, 0.5) !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* 移除浮标内按钮的默认边框，使其更整洁 */
+    div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button {
+        border: none !important;
+        background: transparent !important;
+        font-size: 20px !important;
     }
     
     /* ================= 3. 首页大标题与圆角大菱形矩阵菜单 (终极安全防倾斜版) ================= */
@@ -313,25 +325,28 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
 # ================= 3. 路由与全局顶栏功能 =================
 
 def render_top_nav():
-    """渲染原生且能吸顶的顶部导航栏"""
     st.markdown('<div class="sticky-nav-marker"></div>', unsafe_allow_html=True)
+    # 增加占位空间，防止浮标遮挡正文标题
+    st.markdown('<div style="height: 80px;"></div>', unsafe_allow_html=True)
     
-    # 居中宽度的导航栏
-    _, c1, c2, c3, c4, _ = st.columns([1, 2, 2, 3, 3, 1], gap="medium")
+    # 浮标内部的四列布局
+    c1, c2, c3, c4 = st.columns([1, 1, 1.5, 1.5])
     
-    def nav_button(col, label, target_page):
+    pages = {
+        "🏠 首页": "home",
+        "ℹ️ 关于": "about",
+        "🔍 语料库": "corpus",
+        "🤖 在线识别": "online"
+    }
+    
+    for col, (label, p) in zip([c1, c2, c3, c4], pages.items()):
         with col:
-            # 当前页面使用 primary 样式实现高亮
-            btn_type = "primary" if st.session_state.page == target_page else "secondary"
-            if st.button(label, type=btn_type, use_container_width=True):
-                st.session_state.page = target_page
+            # 选中的页面文字加粗并变色
+            is_active = st.session_state.page == p
+            style = "color: #1E3A8A; font-weight: bold;" if is_active else "color: #6B7280;"
+            if st.button(label, key=f"nav_{p}", use_container_width=True):
+                st.session_state.page = p
                 st.rerun()
-
-    nav_button(c1, "🏠 首页", "home")
-    nav_button(c2, "ℹ️ 关于", "about")
-    nav_button(c3, "🔍 隐喻语料库", "corpus")
-    nav_button(c4, "🤖 在线隐喻识别", "online")
-    st.markdown('<div style="margin-bottom: 30px;"></div>', unsafe_allow_html=True)
 
 
 # ================= 4. 各页面视图渲染 =================
