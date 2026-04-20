@@ -259,12 +259,12 @@ st.markdown("""
             display: flex !important;
             flex-direction: row !important; /* 强制横向 */
             flex-wrap: nowrap !important;
-            gap: 1px !important;
+            gap: 15px !important;
         }
         
         /* 2. 强制每一列平分宽度，不换行 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
-            width: 50% !important;
+            width: 100% !important;
             flex: 1 1 auto !important;
             min-width: 0 !important;
         }
