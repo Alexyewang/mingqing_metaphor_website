@@ -12,42 +12,77 @@ import datetime
 from supabase import create_client, Client
 
 # ================= 1. 页面与专业 UI 配置 =================
-st.set_page_config(page_title="明清小说隐喻语料库与多智能体隐喻在线识别", layout="wide", page_icon="📚")
+st.set_page_config(page_title="明清小说隐喻计算平台", layout="wide", page_icon="📚")
 
+# 纯 CSS UI 优化，大幅提升学术质感与交互体验
 st.markdown("""
 <style>
-    .main {background-color: #F9FAFB;}
+    /* 全局背景色微调，更加护眼 */
+    .stApp {background-color: #F8FAFC;}
+    
+    /* 现代化卡片：增加圆角、平滑阴影、以及鼠标悬浮上浮效果 */
     .card {
-        background-color: #ffffff; padding: 20px; border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 16px;
-        border: 1px solid #E5E7EB; border-left: 5px solid #1E3A8A;
+        background-color: #ffffff; padding: 25px; border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+        margin-bottom: 24px; border: 1px solid #F1F5F9; border-left: 6px solid #2563EB;
+        transition: all 0.3s ease;
     }
+    .card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+        transform: translateY(-2px);
+    }
+    
+    /* 渐变色高级标签 */
     .tag-metaphor {
-        background-color: #DEF7EC; color: #046C4E; padding: 4px 10px;
-        border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
+        background: linear-gradient(135deg, #DEF7EC, #D1FAE5); color: #046C4E; 
+        padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; 
+        letter-spacing: 0.5px; border: 1px solid #A7F3D0; margin-right: 12px;
     }
     .tag-normal {
-        background-color: #F3F4F6; color: #4B5563; padding: 4px 10px;
-        border-radius: 999px; font-size: 12px; font-weight: bold; margin-right: 10px;
+        background: linear-gradient(135deg, #F3F4F6, #E5E7EB); color: #4B5563; 
+        padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; 
+        letter-spacing: 0.5px; border: 1px solid #D1D5DB; margin-right: 12px;
     }
+    
+    /* 细粒度特征徽章 */
     .attr-badge {
-        background-color: #EEF2FF; color: #4338CA; padding: 4px 10px;
+        background-color: #EEF2FF; color: #4338CA; padding: 5px 12px;
         border-radius: 6px; font-size: 12px; font-weight: 500; 
         margin-right: 8px; margin-bottom: 8px; display: inline-block;
         border: 1px solid #C7D2FE;
     }
-    .sentence {font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 10px; font-family: 'SimSun', serif;}
+    
+    /* 句子正文排版优化：字号放大，适配古籍衬线体 */
+    .sentence {
+        font-size: 20px; font-weight: 600; color: #111827; 
+        margin: 18px 0; font-family: 'Noto Serif SC', 'STZhongsong', 'SimSun', serif; 
+        line-height: 1.6; letter-spacing: 0.5px;
+    }
+    
+    /* 专家解析下拉框优化 */
     .analysis-box {
-        background-color: #F8FAFC; padding: 15px; border-radius: 6px;
-        font-size: 14px; color: #475569; border-left: 3px solid #94A3B8; margin-top: 12px;
+        background-color: #F8FAFC; padding: 18px; border-radius: 8px;
+        font-size: 14.5px; color: #334155; border-left: 4px solid #94A3B8; 
+        margin-top: 15px; line-height: 1.6;
     }
+    
+    /* 多智能体独立对话框优化 */
     .agent-box {
-        padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E2E8F0;
+        padding: 18px; border-radius: 10px; margin-bottom: 12px; 
+        border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        font-size: 14px; line-height: 1.6;
     }
-    .agent1 {background-color: #EFF6FF; border-left: 4px solid #3B82F6;}
-    .agent2 {background-color: #FFF7ED; border-left: 4px solid #F97316;}
-    .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
-    .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
+    .agent1 {background-color: #EFF6FF; border-left: 5px solid #3B82F6;}
+    .agent2 {background-color: #FFF7ED; border-left: 5px solid #F97316;}
+    .agent3 {background-color: #ECFDF5; border-left: 5px solid #10B981;}
+    .agent4 {background-color: #F5F3FF; border-left: 5px solid #8B5CF6;}
+    
+    /* 侧边栏计数器美化 */
+    .visit-counter {
+        background: linear-gradient(135deg, #F8FAFC, #F1F5F9); padding: 15px; 
+        border-radius: 8px; text-align: center; border: 1px solid #E2E8F0; 
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,7 +121,7 @@ def get_and_update_visit_count():
 def get_model_configs():
     try:
         return {
-            "Deepseek-V3.2(推荐)": {
+            "Deepseek-V3 (推荐)": {
                 "base_url": "https://api.deepseek.com",
                 "model_name": "deepseek-chat",
                 "env_key": st.secrets["deepseek_api_key"]
@@ -153,7 +188,6 @@ def load_all_corpora():
         s = str(val).strip()
         return s if s and s.lower() != 'nan' else default
 
-    # ========== 新增：提前加载“多维度其他解释”字典 ==========
     multi_exp_dict = {}
     multi_exp_path = "./dataset/multi_explanation.csv"
     if os.path.exists(multi_exp_path):
@@ -162,14 +196,14 @@ def load_all_corpora():
             for _, row in df_multi.iterrows():
                 m_sent = safe_get(row.get('Sentence'), "")
                 m_exp = safe_get(row.get('Alternative_Analysis'), "")
-                if not m_exp or m_exp == "未知": # 容错：如果列名叫 Explanation
+                if not m_exp or m_exp == "未知": 
                     m_exp = safe_get(row.get('Explanation'), "")
                 if m_sent and m_exp and m_exp != "未知":
                     if m_sent not in multi_exp_dict:
                         multi_exp_dict[m_sent] = []
                     multi_exp_dict[m_sent].append(m_exp)
         except Exception:
-            pass # 文件不存在或有误时，直接跳过，不阻断主语料加载
+            pass 
 
     for book_name, file_path in CORPUS_CONFIG.items():
         if not os.path.exists(file_path):
@@ -191,7 +225,7 @@ def load_all_corpora():
                         "Conventionality": "未知", "Form_Features": "未知",
                         "Syntax_Analysis": "暂无解析", "Cognitive_Analysis": "暂无解析",
                         "Conventionality_Analysis": "暂无解析", "Form_Analysis": "暂无解析",
-                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
+                        "Other_Explanations": multi_exp_dict.get(sent_text, []) 
                     })
             elif file_path.endswith('.csv'):
                 df = pd.read_csv(file_path)
@@ -210,7 +244,7 @@ def load_all_corpora():
                         "Conventionality_Analysis": safe_get(row.get('conventionality_analysis'), '暂无解析'),
                         "Form_Features": safe_get(row.get('form_features'), '未知'),
                         "Form_Analysis": safe_get(row.get('form_analysis'), '暂无解析'),
-                        "Other_Explanations": multi_exp_dict.get(sent_text, []) # 绑定多重解释
+                        "Other_Explanations": multi_exp_dict.get(sent_text, []) 
                     })
         except Exception as e:
             st.error(f"加载 {book_name} 语料库 ({file_path}) 时出错: {e}")
@@ -244,9 +278,9 @@ with st.sidebar:
     st.divider()
     total_visits = get_and_update_visit_count()
     st.markdown(f"""
-    <div style="background-color: #F8FAFC; padding: 10px; border-radius: 6px; text-align: center; border: 1px dashed #CBD5E1;">
+    <div class="visit-counter">
         <span style="font-size: 14px; color: #475569;">👁️ 本站累计访问量</span><br/>
-        <span style="font-size: 24px; font-weight: bold; color: #1E3A8A;">{total_visits}</span>
+        <span style="font-size: 26px; font-weight: bold; color: #1E3A8A;">{total_visits}</span>
     </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -318,28 +352,26 @@ with tab1:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
             tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
             
-            # ========== 1. 组装细粒度特征 Badge (顶格写，防止被Markdown解析为代码块) ==========
             badges_html = ""
             details_html = ""
             if s["Label"] == 1:
-                badges_html = f"""<div style="margin-top: 8px;">
+                badges_html = f"""<div style="margin-top: 12px;">
 <span class="attr-badge">📌 句法: {s.get('Syntax_Type', '未知')}</span>
 <span class="attr-badge">🧠 认知: {s.get('Cognitive_Type', '未知')}</span>
 <span class="attr-badge">⏳ 规约: {s.get('Conventionality', '未知')}</span>
 <span class="attr-badge">🎭 特征: {s.get('Form_Features', '未知')}</span>
 </div>"""
 
-                details_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #CBD5E1;">
-<b>🧬 Agent 4 细分类依据：</b><br/>
-<ul style="margin-top: 5px; color: #64748B; font-size: 13px;">
-<li style="margin-bottom: 4px;"><b>句法：</b>{s.get('Syntax_Analysis', '暂无解析')}</li>
-<li style="margin-bottom: 4px;"><b>认知：</b>{s.get('Cognitive_Analysis', '暂无解析')}</li>
-<li style="margin-bottom: 4px;"><b>规约：</b>{s.get('Conventionality_Analysis', '暂无解析')}</li>
+                details_html = f"""<div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #CBD5E1;">
+<b style="color:#4C1D95;">🧬 Agent 4 细分类依据：</b><br/>
+<ul style="margin-top: 8px; color: #475569; font-size: 13.5px; padding-left: 20px; line-height: 1.7;">
+<li style="margin-bottom: 6px;"><b>句法：</b>{s.get('Syntax_Analysis', '暂无解析')}</li>
+<li style="margin-bottom: 6px;"><b>认知：</b>{s.get('Cognitive_Analysis', '暂无解析')}</li>
+<li style="margin-bottom: 6px;"><b>规约：</b>{s.get('Conventionality_Analysis', '暂无解析')}</li>
 <li><b>综合：</b>{s.get('Form_Analysis', '暂无解析')}</li>
 </ul>
 </div>"""
                 
-            # ========== 2. 美化三审核心解析字符串 ==========
             raw_analysis = s['Analysis']
             formatted_analysis = raw_analysis 
             
@@ -349,42 +381,39 @@ with tab1:
                     p2 = raw_analysis.split("【二审】:")[1].split("| 【终审】:")[0].strip()
                     p3 = raw_analysis.split("【终审】:")[1].strip()
                     
-                    formatted_analysis = f"""<div style="margin-top: 5px;">
-<div style="background-color: #EFF6FF; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3B82F6; margin-bottom: 8px; font-size: 13px;">
-<b style="color: #1E3A8A;">🕵️‍♂️ Agent 1 (语义)：</b> {p1}
+                    formatted_analysis = f"""<div style="margin-top: 10px;">
+<div class="agent-box agent1">
+<b style="color: #1E3A8A; font-size: 14.5px;">🕵️‍♂️ Agent 1 (语义)：</b> {p1}
 </div>
-<div style="background-color: #FFF7ED; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #F97316; margin-bottom: 8px; font-size: 13px;">
-<b style="color: #9A3412;">⚖️ Agent 2 (推理)：</b> {p2}
+<div class="agent-box agent2">
+<b style="color: #9A3412; font-size: 14.5px;">⚖️ Agent 2 (推理)：</b> {p2}
 </div>
-<div style="background-color: #ECFDF5; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #10B981; font-size: 13px;">
-<b style="color: #065F46;">👨‍⚖️ Agent 3 (裁判)：</b> {p3}
+<div class="agent-box agent3" style="margin-bottom:0;">
+<b style="color: #065F46; font-size: 14.5px;">👨‍⚖️ Agent 3 (裁判)：</b> {p3}
 </div>
 </div>"""
                 except Exception:
                     pass 
 
-            # ========== 新增：组装“其他解释”的 UI 模块 ==========
             other_exp_html = ""
             if s.get("Other_Explanations"):
-                # 将多条解释组装成列表项
-                items_html = "".join([f"<li style='margin-bottom: 6px;'>{exp}</li>" for exp in s["Other_Explanations"]])
-                other_exp_html = f"""<div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #FCD34D; background-color: #FEF3C7; padding: 12px; border-radius: 6px;">
-<b style="color: #D97706; font-size: 14px;">💡 其他专家/视角的解析补充：</b><br/>
-<ul style="margin-top: 8px; color: #92400E; font-size: 13px; padding-left: 20px;">
+                items_html = "".join([f"<li style='margin-bottom: 8px;'>{exp}</li>" for exp in s["Other_Explanations"]])
+                other_exp_html = f"""<div style="margin-top: 18px; background-color: #FEF3C7; padding: 16px; border-radius: 8px; border-left: 4px solid #F59E0B;">
+<b style="color: #B45309; font-size: 14.5px;">💡 其他专家/视角的解析补充：</b><br/>
+<ul style="margin-top: 10px; color: #92400E; font-size: 14px; padding-left: 20px; line-height: 1.6; margin-bottom: 0;">
 {items_html}
 </ul>
 </div>"""
             
-            # ========== 3. 渲染升级版 Sentence Card ==========
             st.markdown(f"""<div class="card">
 <span class="{tag_class}">{tag_text}</span>
 <span style="font-size: 12px; color: #64748B;">来源: 《{s['Book']}》</span>
 {badges_html}
-<div class="sentence" style="margin-top: 10px;">{s['Sentence']}</div>
+<div class="sentence">{s['Sentence']}</div>
 <details>
-<summary style="cursor: pointer; color: #3B82F6; font-size: 14px; font-weight: 500;">展开查看多维专家解析</summary>
-<div class="analysis-box" style="padding-top: 10px;">
-<b style="font-size: 14px; color: #475569;">基础判决逻辑：</b>
+<summary style="cursor: pointer; color: #2563EB; font-size: 14.5px; font-weight: 600;">展开查看多维专家解析 ▾</summary>
+<div class="analysis-box">
+<b style="font-size: 15px; color: #334155;">基础判决逻辑：</b>
 {formatted_analysis}
 {details_html}
 {other_exp_html}
@@ -392,7 +421,6 @@ with tab1:
 </details>
 </div>""", unsafe_allow_html=True)
             
-            # ========== 4. 反馈表单 ==========
             with st.expander("✍️ 发现错误？提交更正意见"):
                 with st.form(key=f"feedback_form_{s['Sentence'][:10]}_{hash(s['Sentence'])}"):
                     new_label = st.radio("正确的大类标签：", options=[0, 1], index=s['Label'], horizontal=True)
@@ -413,7 +441,7 @@ with tab1:
                             new_conv = st.text_input("规约程度", value=new_conv)
                             new_form = st.text_input("表现形式", value=new_form)
                             
-                    submit_btn = st.form_submit_button("安全提交至云端")
+                    submit_btn = st.form_submit_button("安全提交至云端", use_container_width=True)
                     
                     if submit_btn:
                         feedback_data = {
@@ -471,8 +499,8 @@ with tab2:
                 
                 st.markdown(f"""
                 <div class="agent-box agent1">
-                    <b>🎯 提纯结果：</b><br/>
-                    <b>表层语义：</b> {analysis1} <br/>
+                    <b style="color: #1E3A8A; font-size: 15px;">🎯 提纯结果：</b><br/><br/>
+                    <b>表层语义：</b> {analysis1} <br/><br/>
                     <b>可疑修辞词：</b> {words1}
                 </div>
                 """, unsafe_allow_html=True)
@@ -499,8 +527,8 @@ with tab2:
                 
                 st.markdown(f"""
                 <div class="agent-box agent2">
-                    <b>🔍 推理报告：</b><br/>
-                    <b>逻辑分析：</b> {reason2} <br/>
+                    <b style="color: #9A3412; font-size: 15px;">🔍 推理报告：</b><br/><br/>
+                    <b>逻辑分析：</b> {reason2} <br/><br/>
                     <b>初步标签：</b> {"隐喻 (1)" if label2 == 1 else "非隐喻 (0)"}
                 </div>
                 """, unsafe_allow_html=True)
@@ -521,9 +549,9 @@ with tab2:
                 
                 st.markdown(f"""
                 <div class="agent-box agent3">
-                    <b>📌 最终定谳：</b><br/>
+                    <b style="color: #065F46; font-size: 15px;">📌 最终定谳：</b><br/><br/>
                     <b>终审逻辑：</b> {final_reason} <br/>
-                    <h3 style="color: {'#10B981' if final_label==1 else '#64748B'}; margin-top: 10px;">
+                    <h3 style="color: {'#059669' if final_label==1 else '#64748B'}; margin-top: 15px;">
                         最终结论: {"🏷️ 这是一个隐喻句 (Label: 1)" if final_label == 1 else "📝 这是一个字面义句 (Label: 0)"}
                     </h3>
                 </div>
@@ -542,7 +570,7 @@ with tab2:
                 ]
                 
                 cols = st.columns(2)
-                st.markdown('<div class="agent-box agent4"><b>📊 细粒度分类报告：</b><br/><br/>', unsafe_allow_html=True)
+                st.markdown('<div class="agent-box agent4"><b style="color: #5B21B6; font-size: 15px;">📊 细粒度分类报告：</b><br/><br/>', unsafe_allow_html=True)
                 
                 for idx, task in enumerate(category_tasks):
                     agent_prompt = f"""作为语言学专家，请判定该《{book_context}》隐喻句的【{task['task_name']}】特征。
@@ -562,10 +590,10 @@ with tab2:
                         res_json = json.loads(resp.choices[0].message.content.strip())
                         col = cols[idx % 2]
                         col.markdown(f"""
-                        <div style="background-color: #ffffff; padding: 10px; border-radius: 6px; border-left: 3px solid #8B5CF6; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <b style="color: #4C1D95; font-size: 14px;">{task['task_name']}</b><br/>
-                            <span style="font-size: 13px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold;">{res_json.get(task['keys'][0], '未知')}</span></span><br/>
-                            <span style="font-size: 12px; color: #475569;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
+                        <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; border-left: 4px solid #8B5CF6; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <b style="color: #4C1D95; font-size: 14.5px;">{task['task_name']}</b><br/><br/>
+                            <span style="font-size: 13.5px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold; background-color: #FDF4FF; padding: 2px 6px; border-radius: 4px;">{res_json.get(task['keys'][0], '未知')}</span></span><br/><br/>
+                            <span style="font-size: 13px; color: #475569; line-height: 1.6;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
                         </div>
                         """, unsafe_allow_html=True)
                     except Exception as e:
@@ -582,11 +610,11 @@ with tab2:
                 if sim_matches:
                     for sim in sim_matches:
                         st.markdown(f"""
-                        <div class="sim-card card" style="padding: 15px;">
-                            <span class="tag-metaphor" style="float:right;">关联度极高</span>
-                            <div style="font-size: 16px; font-weight: bold; color: #1E293B; margin-bottom: 5px;">《{sim['Book']}》</div>
-                            <div style="font-size: 16px; font-family: 'SimSun', serif; margin-bottom: 8px;">{sim['Sentence']}</div>
-                            <div style="font-size: 13px; color: #475569;"><b>库内专家解析:</b> {sim['Analysis']}</div>
+                        <div class="card" style="padding: 20px; margin-top: 10px;">
+                            <span class="tag-metaphor" style="float:right; margin:0;">关联度极高</span>
+                            <div style="font-size: 15px; font-weight: bold; color: #1E3A8A; margin-bottom: 10px;">《{sim['Book']}》</div>
+                            <div class="sentence" style="font-size: 18px; margin: 10px 0;">{sim['Sentence']}</div>
+                            <div class="analysis-box" style="margin-top: 10px; padding: 12px;"><b>库内专家解析:</b><br/>{sim['Analysis']}</div>
                         </div>
                         """, unsafe_allow_html=True)
                 else:
