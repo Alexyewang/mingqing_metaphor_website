@@ -254,51 +254,39 @@ st.markdown("""
     }
 /* ================= 手机端首页菱形矩阵完美修复 ================= */
     @media (max-width: 768px) {
-        /* 1. 强制列布局在手机上也不要垂直堆叠，保持水平横向 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] {
+        /* 1. 强制首页按钮容器在手机上也不堆叠，保持 2x2 结构 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"] {
             display: flex !important;
-            flex-direction: row !important; /* 强制横向排列 */
+            flex-direction: row !important; /* 强制横向 */
             flex-wrap: nowrap !important;
-            justify-content: center !important;
-            width: 100% !important;
-            gap: 15px !important; /* 缩小间距适应小屏 */
+            gap: 15px !important;
         }
         
-        /* 2. 确保两列各占一半宽度，不要撑开 */
+        /* 2. 强制每一列平分宽度，不换行 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] {
             width: 50% !important;
-            min-width: 0 !important;
             flex: 1 1 auto !important;
+            min-width: 0 !important;
         }
 
-        /* 3. 缩小按钮尺寸，防止在手机上因太大而导致排列变形 */
+        /* 3. 缩减按钮尺寸以适配手机窄屏，防止溢出 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
             width: 120px !important; 
             height: 120px !important;
             border-radius: 30px !important;
         }
         
-        /* 4. 调整旋转容器的整体宽度和缩放 */
+        /* 4. 整体菜单缩放调整 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
             width: 260px !important;
-            transform: rotate(45deg) scale(0.85) !important; /* 稍微缩小整体比例 */
+            transform: rotate(45deg) scale(0.85) !important;
             margin: 0 auto !important;
-            padding-bottom: 20px !important;
         }
 
-        /* 5. 缩小按钮内的字号 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
-            font-size: 20px !important;
-        }
-
-        /* 其他移动端通用优化：缩小标题，隐藏多余间距 */
+        /* 5. 首页标题缩小，防止撑破排版 */
         .hero-title {
-            font-size: 2.8rem !important;
-            margin-top: 10vh !important;
-            letter-spacing: 5px !important;
-        }
-        .main .block-container {
-            padding-top: 20px !important;
+            font-size: 2.6rem !important;
+            margin-top: 8vh !important;
         }
     }
 </style>
