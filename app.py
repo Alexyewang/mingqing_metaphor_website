@@ -43,30 +43,35 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* ================= 绝对安全的选项卡吸顶与居中 ================= */
-    /* 仅针对 tab-list 施加控制，绝对不破坏底层的上下排版结构 */
-    [data-baseweb="tab-list"] {
-        display: flex !important;
-        justify-content: center !important;
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0px !important;
-        z-index: 99999 !important;
-        background-color: #FAF9F6 !important;
-        padding-top: 15px !important;
-        padding-bottom: 10px !important;
-        border-bottom: 2px solid #E5E7EB !important;
+    /* ================= 顶部选项卡强制吸顶与居中 (终极修复) ================= */
+    div[data-testid="stTabs"] {
+        padding-top: 70px !important; /* 为脱离文档流的固定顶栏留出空间，防止遮挡下方内容 */
     }
-    [data-baseweb="tab"] {
-        font-size: 22px !important; 
+    div[data-testid="stTabs"] > div:first-of-type {
+        display: flex !important;
+        justify-content: center !important; /* 强制居中 */
+        position: fixed !important; /* 放弃 sticky，采用最高级别的 fixed 强制固定在视口 */
+        top: 0px !important;
+        left: 0px !important;
+        right: 0px !important;
+        width: 100% !important;
+        z-index: 999999 !important; /* 保证在最上层 */
+        background-color: #FAF9F6 !important; /* 背景色防穿透 */
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+        border-bottom: 2px solid #E5E7EB !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important; /* 添加微弱的底部阴影增强悬浮感 */
+    }
+    div[data-testid="stTabs"] button {
+        font-size: 22px !important; /* 选项卡字号大幅提升 */
         font-weight: 600 !important;
         color: #6B7280 !important;
         padding: 12px 24px !important;
-        margin: 0 15px !important; 
+        margin: 0 15px !important; /* 增加选项卡间距 */
         border: none !important;
         height: auto !important;
     }
-    [aria-selected="true"] {
+    div[data-testid="stTabs"] [aria-selected="true"] {
         color: #1E3A8A !important;
         border-bottom: 4px solid #1E3A8A !important;
     }
@@ -101,7 +106,7 @@ st.markdown("""
     .agent3 {background-color: #ECFDF5; border-left: 4px solid #10B981;}
     .agent4 {background-color: #F5F3FF; border-left: 4px solid #8B5CF6;}
     
-    /* ================= 左下角浮动访问量统计 ================= */
+    /* 左下角浮动访问量统计模块 */
     .floating-stats {
         position: fixed;
         bottom: 25px;
@@ -261,7 +266,7 @@ with tab_home:
 with tab_about:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 纯净的原生列布局，移除任何导致错位的 HTML 嵌套
+    # 纯净的原生列布局，不使用任何会干扰组件的 HTML div 包裹
     col_left_nav, col_right_content = st.columns([1, 4], gap="large")
     
     with col_left_nav:
