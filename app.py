@@ -168,12 +168,12 @@ st.markdown("""
             grid-template-rows: 90px 90px !important;    
             
             /* 精准调节间距： */
-            column-gap: 1px !important;  /* 增加横向间距 (右上到左下) */
+            column-gap: 12px !important;  /* 增加横向间距 (右上到左下) */
             row-gap: 1px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
             
             /* 同步微调容器总宽高 (114*2 + 间距) */
-            width: 242px !important;
-            height: 230px !important; 
+            width: 194px !important;
+            height: 184px !important; 
             
             margin: 20px auto 50px auto !important;
             transform: rotate(45deg) !important;           
