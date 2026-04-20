@@ -9,6 +9,7 @@ import time
 import re
 import os
 import datetime
+import base64
 from supabase import create_client, Client
 
 # ================= 1. 页面配置与全局 CSS =================
@@ -18,14 +19,45 @@ st.set_page_config(page_title="明清文学隐喻智能分析平台", layout="wi
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
+# ================= 1.5 动态背景图加载逻辑 =================
+bg_path = "bg.jpg" # 确保背景图已命名为 bg.jpg 并放在同级目录
+if os.path.exists(bg_path):
+    with open(bg_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    
+    if st.session_state.page == 'home':
+        # 首页：高清背景，隐藏自带标题
+        bg_css = f"""
+        <style>
+        .stApp {{
+            background-image: url("data:image/jpeg;base64,{encoded_string}") !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-attachment: fixed !important;
+        }}
+        .hero-title {{ display: none !important; }}
+        </style>
+        """
+    else:
+        # 其他页：加盖一层 85% 不透明度的纸张色渐变，变浅做背景，保证文本清晰可读
+        bg_css = f"""
+        <style>
+        .stApp {{
+            background-image: linear-gradient(rgba(250, 249, 246, 0.85), rgba(250, 249, 246, 0.85)), url("data:image/jpeg;base64,{encoded_string}") !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-attachment: fixed !important;
+        }}
+        </style>
+        """
+    st.markdown(bg_css, unsafe_allow_html=True)
+
 # --- 全局极简 CSS ---
 st.markdown("""
 <style>
     /* ================= 0. 全端通用基础样式与您的原始设计 ================= */
     .stApp {
         background-color: #FAF9F6 !important;
-        background-image: radial-gradient(#E5E7EB 0.5px, transparent 0.5px) !important;
-        background-size: 24px 24px !important;
     }
     [data-testid="collapsedControl"], header[data-testid="stHeader"] { display: none !important; }
     .main .block-container { padding-bottom: 5rem !important; }
@@ -84,91 +116,59 @@ st.markdown("""
         }
 
         .hero-title { width: 100%; text-align: center !important; font-family: 'SimSun', 'STSong', serif; font-size: 5rem; color: #1F2937; margin-top: 15vh; margin-bottom: 8vh; font-weight: bold; letter-spacing: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.05); }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) { width: 350px !important; margin: 0 auto 12vh auto !important; transform: rotate(45deg) !important; padding: 0 !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stHorizontalBlock"] { gap: 20px !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) [data-testid="column"] { gap: 20px !important; display: flex !important; flex-direction: column !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button { width: 160px !important; height: 160px !important; border-radius: 40px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.06) !important; border: 2px solid #E5E7EB !important; background-color: rgba(255, 255, 255, 0.95) !important; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; padding: 0 !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button:hover { transform: scale(1.05) !important; box-shadow: 0 15px 35px rgba(59,130,246,0.2) !important; border-color: #3B82F6 !important; background-color: #EFF6FF !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div { transform: rotate(-45deg) !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p { font-size: 26px !important; font-weight: 900 !important; color: #1E3A8A !important; margin: 0 !important; line-height: 1.4 !important; }
+        
+        /* 电脑端正方形矩阵修复 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) { 
+            width: 350px !important; margin: 40vh auto 12vh auto !important; padding: 0 !important; 
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) > div[data-testid="stHorizontalBlock"] { gap: 20px !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) [data-testid="column"] { gap: 20px !important; display: flex !important; flex-direction: column !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button { 
+            width: 160px !important; height: 160px !important; border-radius: 25px !important; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important; border: 2px solid #E5E7EB !important; background-color: rgba(255, 255, 255, 0.95) !important; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; padding: 0 !important; 
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button:hover { 
+            transform: scale(1.05) !important; box-shadow: 0 15px 35px rgba(59,130,246,0.2) !important; border-color: #3B82F6 !important; background-color: #EFF6FF !important; 
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button > div { 
+            display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; 
+        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button p { 
+            font-size: 26px !important; font-weight: 900 !important; color: #1E3A8A !important; margin: 0 !important; line-height: 1.4 !important; 
+        }
     }
-/* ================= 3. 手机端排版修复 (<= 768px) ================= */
+
+    /* ================= 2. 手机端响应式适配 (<= 768px) ================= */
     @media (max-width: 768px) {
         .main .block-container { padding-top: 20px !important; padding-left: 10px !important; padding-right: 10px !important; }
-        .hero-title { font-size: 2.2rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
+        .hero-title { font-size: 2.5rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
         .floating-stats { display: none !important; }
-        
-        /* 手机端导航条与抗深色模式修复 */
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
-            position: relative !important; background: #FAF9F6 !important; box-shadow: none !important; border-bottom: none !important; padding: 5px !important;
-        }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
-            text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important;
-        }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
-            background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important;
-        }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
-            background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important;
-        }
 
-        /* --- 🚀 核心黑科技修复：手机端菱形强制拼合 (CSS Grid + 容器穿透) --- */
-        
-        /* 1. 将根容器设为严格的 2x2 网格阵列，钉死宽高 */
-/* --- 🚀 核心修复：手机端菱形间距平衡化 --- */
-        
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-            display: grid !important;
-            grid-template-columns: 90px 90px !important; 
-            grid-template-rows: 90px 90px !important;    
-            
-            /* 精准调节间距： */
-            column-gap: 24px !important;  /* 增加横向间距 (右上到左下) */
-            row-gap: 2px !important;     /* 极度缩小行间距 (左上到右下)，抵消默认容器空隙 */
-            
-            /* 同步微调容器总宽高 (114*2 + 间距) */
-            width: 194px !important;
-            height: 184px !important; 
-            
-            margin: 20px auto 50px auto !important;
-            transform: rotate(45deg) !important;           
-            padding: 0 !important;
-        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div { position: relative !important; top: unset !important; padding: 5px !important; background-color: rgba(250, 249, 246, 0.95) !important; box-shadow: none !important; border-bottom: none !important; }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div { flex-direction: column !important; max-width: 100% !important; }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 { text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important; }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button { background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important; }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] { background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important; }
 
-        /* 2. 剥掉 Streamlit 套在按钮外面的所有“伪装”外壳，让按钮直接参与网格排版 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"],
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="column"],
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stVerticalBlock"],
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stElementContainer"] {
-            display: contents !important; 
+        /* 手机端正方形网格修复 (去除斜向旋转) */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) {
+            display: grid !important; grid-template-columns: 115px 115px !important; grid-template-rows: 115px 115px !important;    
+            column-gap: 20px !important; row-gap: 20px !important;     
+            width: 250px !important; height: 250px !important; 
+            margin: 35vh auto 40px auto !important; padding: 0 !important;
         }
-
-        /* 3. 隐藏 marker 占位符，以免它霸占网格的一个格子 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stElementContainer"]:first-child {
-            display: none !important;
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) div[data-testid="stHorizontalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) div[data-testid="column"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) div[data-testid="stVerticalBlock"],
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) div[data-testid="stElementContainer"] { display: contents !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) > div[data-testid="stElementContainer"]:first-child { display: none !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button {
+            width: 115px !important; height: 115px !important; border-radius: 20px !important; background-color: rgba(255, 255, 255, 0.95) !important; border: 2px solid #E5E7EB !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; padding: 0 !important; margin: 0 !important;
         }
-
-        /* 4. 按钮尺寸完美填满网格单元 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
-            width: 114px !important; 
-            height: 114px !important; 
-            border-radius: 25px !important;
-            background-color: #FFFFFF !important;
-            border: 2px solid #E5E7EB !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.06) !important;
-            padding: 0 !important; margin: 0 !important;
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button > div {
+            display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important;
         }
-
-        /* 5. 内部文字反转回正并修正颜色 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div {
-            transform: rotate(-45deg) !important; 
-            display: flex !important; flex-direction: column !important; 
-            align-items: center !important; justify-content: center !important;
-            width: 100% !important; height: 100% !important;
-        }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
-            font-size: 20px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important;
-        }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .square-menu-marker) button p { font-size: 18px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -321,9 +321,10 @@ def render_top_nav():
 
 # ================= 4. 各页面视图渲染 =================
 if st.session_state.page == 'home':
-    st.markdown('<div class="hero-title">明清文学隐喻智能分析平台</div>', unsafe_allow_html=True)
+    # 首页只有图片背景和底部菜单块，隐藏了原版文字标题
+    st.markdown('<div class="hero-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
     with st.container():
-        st.markdown('<div class="rhombus-menu-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="square-menu-marker"></div>', unsafe_allow_html=True) # 改为了正方形 marker
         r1c1, r1c2 = st.columns(2)
         with r1c1:
             if st.button("🏠\n首页", use_container_width=True): pass 
@@ -353,11 +354,11 @@ elif st.session_state.page == 'about':
             st.markdown(f"<h2 style='color:#1E3A8A; margin-bottom: 20px;'>📘 {about_nav}</h2>", unsafe_allow_html=True)
             st.divider()
             if about_nav == "项目简介":
-                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目针对现有隐喻识别方法难以适配古典文本的问题，搭建了解耦多智能体隐喻识别框架与明清文学隐喻标注平台。平台支持在线句子隐喻识别、古典小说语句检索，并依据传统隐喻理论加入细粒度特征筛选功能。因隐喻本身存在理解差异，设“提交意见”窗口，经后台人工审核持续优化，维护学术争鸣的平台环境。对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
             elif about_nav == "主要功能":
-                st.markdown("<div style='font-size:20px; line-height:2.0; color:#374151;'><ul><li style='margin-bottom: 15px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li><li style='margin-bottom: 15px;'><b>多智能体在线识别</b>：通过语义提取、考证推理、逻辑审核三步完成自动隐喻识别。</li><li><b>自动特征分类与专家共创</b>：支持用户反馈、纠错以及多元化理解。</li></ul></div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:20px; line-height:2.0; color:#374151;'><ul><li style='margin-bottom: 15px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li><li style='margin-bottom: 15px;'><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li><li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li></ul></div>", unsafe_allow_html=True)
             elif about_nav == "使用指南":
-                st.markdown("<div style='font-size:20px; line-height:2.0; color:#374151;'><ol><li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清文学隐喻语料库</b>，进行库内数据探索与检索。</li><li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li></ol></div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:20px; line-height:2.0; color:#374151;'><ol><li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li><li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li></ol></div>", unsafe_allow_html=True)
 
 elif st.session_state.page == 'corpus':
     render_top_nav()
@@ -406,7 +407,7 @@ elif st.session_state.page == 'corpus':
                 
             st.markdown(f"<br><div style='text-align:center; font-size:20px; margin-bottom: 20px;'>为您检索到 <span style='color:#1D4ED8; font-weight:bold; font-size:28px;'>{len(filtered_samples)}</span> 条符合条件的语料。</div>", unsafe_allow_html=True)
             
-            # ========== 渲染卡片 (已修复 Widget ID 冲突 Bug) ==========
+            # ========== 渲染卡片 ==========
             for idx, s in enumerate(filtered_samples[:50]):
                 tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
                 tag_text = "✨ 隐喻 (Metaphor)" if s["Label"] == 1 else "📝 非隐喻 (Literal)"
@@ -432,7 +433,6 @@ elif st.session_state.page == 'corpus':
                 
                 st.markdown(f"""<div class="card"><span class="{tag_class}">{tag_text}</span><span style="font-size: 15px; color: #6B7280; margin-left: 10px;">来源: 《{s['Book']}》</span>{badges_html}<div class="sentence">{s['Sentence']}</div><details><summary style="cursor: pointer; color: #2563EB; font-size: 18px; font-weight: 600; padding: 5px 0;">展开查看多维专家解析 ▾</summary><div class="analysis-box"><b style="font-size: 18px; color: #1F2937;">基础判决逻辑：</b>{formatted_analysis}{details_html}{other_exp_html}</div></details></div>""", unsafe_allow_html=True)
                 
-                # 修复了可能会引起程序崩溃的 Key 冲突问题
                 with st.expander("✍️ 发现错误？提交更正意见"):
                     with st.form(key=f"feedback_form_{idx}"):
                         new_label = st.radio("正确的大类标签：", options=[0, 1], index=s['Label'], horizontal=True, key=f"rad_{idx}")
@@ -478,9 +478,13 @@ elif st.session_state.page == 'online':
                 
             if st.button("🚀 启动多智能体分析", type="primary", use_container_width=True):
                 book_context = target_book.strip() if target_book.strip() else "明清小说"
-                config = MODEL_CONFIGS[selected_model]
+                config = MODEL_CONFIGS.get(selected_model, {})
+                if not config:
+                    st.error("模型配置缺失！")
+                    st.stop()
+                    
                 http_client = httpx.Client(proxy="http://127.0.0.1:7890") if use_proxy else None
-                client = OpenAI(api_key=config["env_key"], base_url=config["base_url"], http_client=http_client)
+                client = OpenAI(api_key=config.get("env_key",""), base_url=config.get("base_url",""), http_client=http_client)
                 st.divider()
                 
                 with st.status("🕵️‍♂️ Agent 1 (语义提取) 正在分析表层结构...", expanded=True) as status1:
@@ -547,7 +551,7 @@ elif st.session_state.page == 'online':
 total_visits = get_and_update_visit_count()
 st.markdown(f"""
     <div class="floating-stats">
-        <div style="font-weight: bold; margin-bottom: 5px;">👁️ 累计访问</div>
+        <div style="font-weight: bold; margin-bottom: 5px;">👁️ 累计科研访问</div>
         <div style="color: #1D4ED8; font-size: 20px; font-weight: 800;">{total_visits} <span style="font-size: 14px; color: #6B7280; font-weight: normal;">次</span></div>
     </div>
 """, unsafe_allow_html=True)
