@@ -20,58 +20,7 @@ if 'page' not in st.session_state:
 
 # --- 全局极简 CSS ---
 st.markdown("""
-/* ================= 专门针对手机端的响应式适配 ================= */
-@media (max-width: 768px) {
-    /* 1. 缩小首页标题字号，防止换行错乱 */
-    .hero-title {
-        font-size: 2.5rem !important;
-        margin-top: 10vh !important;
-        letter-spacing: 5px !important;
-    }
 
-    /* 2. 首页菱形菜单适配：在手机上缩小比例，防止超出屏幕 */
-    div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-        width: 280px !important; /* 缩小容器宽度 */
-        transform: rotate(45deg) scale(0.8) !important; /* 整体缩放 0.8 倍 */
-        margin: 0 auto 5vh auto !important;
-    }
-    
-    /* 3. 顶栏适配：手机端取消固定悬浮（Fixed），改为随页面滚动，防止遮挡手机小屏幕 */
-    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
-        position: relative !important; /* 取消固定 */
-        box-shadow: none !important;
-        padding: 5px !important;
-    }
-    
-    /* 4. 标题与导航：在手机上让它们垂直排列，不再强行挤在一行 */
-    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div {
-        flex-direction: column !important;
-        max-width: 100% !important;
-    }
-    div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
-        font-size: 20px !important; /* 缩小顶栏标题 */
-        text-align: center !important;
-        margin-bottom: 10px !important;
-    }
-
-    /* 5. 页面边距：手机端取消左右留白，让内容铺满 */
-    .main .block-container {
-        padding-top: 20px !important; /* 取消为了悬浮栏预留的大空白 */
-        padding-left: 10px !important;
-        padding-right: 10px !important;
-    }
-
-    /* 6. 句子卡片：手机端宽度恢复到 95%，不再缩短 */
-    .card {
-        width: 95% !important;
-        padding: 15px !important;
-    }
-
-    /* 7. 隐藏左下角访问统计：手机端屏幕太小，浮窗会遮挡操作按钮 */
-    .floating-stats {
-        display: none !important;
-    }
-}
 <style>
     /* ================= 专门针对左侧边栏导航（Radio按钮）的舒展美化 ================= */
     /* 1. 增加各个选项卡之间的上下间距，彻底告别拥挤感 */
