@@ -242,16 +242,40 @@ with tab1:
     if not samples:
         st.warning("⚠️ 找不到任何语料库文件，请检查 CORPUS_CONFIG 中的路径是否正确！")
     else:
+        # === 第一排：基础搜索 ===
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
-            search_query = st.text_input("搜索句子内容（可以使用关键词搜索）")
+            search_query = st.text_input("🔍 搜索句子内容（支持关键词）")
         with col2:
             available_books = sorted(list(set(s["Book"] for s in samples)))
-            filter_book = st.selectbox("书籍筛选", ["全部"] + available_books)
+            filter_book = st.selectbox("📚 书籍筛选", ["全部"] + available_books)
         with col3:
-            filter_label = st.selectbox("类型筛选", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
+            filter_label = st.selectbox("🏷️ 基础类型", ["全部", "仅隐喻 (Label 1)", "非隐喻 (Label 0)"])
         
+        # === 第二排：高级细粒度筛选 (默认全部，仅在查隐喻时展开更有意义) ===
+        filter_syntax, filter_cog, filter_conv, filter_form = "全部", "全部", "全部", "全部"
+        
+        # 当不限定只查非隐喻时，展示高级筛选面板
+        if filter_label in ["全部", "仅隐喻 (Label 1)"]:
+            with st.expander("🔬 细粒度特征筛选 (高级搜索)"):
+                st.caption("基于多智能体深度判定的特征进行交叉检索：")
+                
+                # 动态从当前加载的语料中提取所有非空、非"未知"的选项，避免写死导致选项为空
+                syn_opts = sorted(list(set(s.get("Syntax_Type", "") for s in samples if s.get("Label")==1 and s.get("Syntax_Type") not in ["", "未知"])))
+                cog_opts = sorted(list(set(s.get("Cognitive_Type", "") for s in samples if s.get("Label")==1 and s.get("Cognitive_Type") not in ["", "未知"])))
+                conv_opts = sorted(list(set(s.get("Conventionality", "") for s in samples if s.get("Label")==1 and s.get("Conventionality") not in ["", "未知"])))
+                form_opts = sorted(list(set(s.get("Form_Features", "") for s in samples if s.get("Label")==1 and s.get("Form_Features") not in ["", "未知"])))
+                
+                c1, c2, c3, c4 = st.columns(4)
+                with c1: filter_syntax = st.selectbox("📌 句法类型", ["全部"] + syn_opts)
+                with c2: filter_cog = st.selectbox("🧠 认知视角", ["全部"] + cog_opts)
+                with c3: filter_conv = st.selectbox("⏳ 规约程度", ["全部"] + conv_opts)
+                with c4: filter_form = st.selectbox("🎭 表现形式", ["全部"] + form_opts)
+
+        # === 综合过滤逻辑流水线 ===
         filtered_samples = samples
+        
+        # 1. 基础文本与分类过滤
         if search_query:
             filtered_samples = [s for s in filtered_samples if search_query in s["Sentence"]]
         if filter_book != "全部":
@@ -261,7 +285,19 @@ with tab1:
         elif filter_label == "非隐喻 (Label 0)":
             filtered_samples = [s for s in filtered_samples if s["Label"] == 0]
             
-        st.caption(f"为您检索到 **{len(filtered_samples)}** 条高质量语料。")
+        # 2. 细粒度特征过滤 (层层递进的交集筛选)
+        if filter_syntax != "全部":
+            filtered_samples = [s for s in filtered_samples if s.get("Syntax_Type") == filter_syntax]
+        if filter_cog != "全部":
+            filtered_samples = [s for s in filtered_samples if s.get("Cognitive_Type") == filter_cog]
+        if filter_conv != "全部":
+            filtered_samples = [s for s in filtered_samples if s.get("Conventionality") == filter_conv]
+        if filter_form != "全部":
+            filtered_samples = [s for s in filtered_samples if s.get("Form_Features") == filter_form]
+            
+        # 显示结果计数
+        st.markdown(f"为您检索到 <span style='color:#3B82F6; font-weight:bold; font-size:16px;'>{len(filtered_samples)}</span> 条符合条件的语料。", unsafe_allow_html=True)
+        st.divider()
         
         for s in filtered_samples[:50]:
             tag_class = "tag-metaphor" if s["Label"] == 1 else "tag-normal"
