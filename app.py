@@ -395,7 +395,7 @@ def render_top_nav():
     
     with col_title:
         # 增大左上角标题字号 (32px)
-        st.markdown("<h2 style='margin:0; color:#1E3A8A; font-weight:900; font-size: 32px; letter-spacing: -1px;'>明清典籍隐喻计算平台</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; color:#1E3A8A; font-weight:900; font-size: 32px; letter-spacing: -1px;'>明清文学隐喻智能分析平台</h2>", unsafe_allow_html=True)
 
     pages = {
         "🏠 首页": "home",
@@ -421,7 +421,7 @@ def render_top_nav():
 
 if st.session_state.page == 'home':
     # 首页无顶栏，只有超大标题和大菱形矩阵菜单
-    st.markdown('<div class="hero-title">明清典籍隐喻计算平台</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-title">明清文学隐喻智能分析平台</div>', unsafe_allow_html=True)
     
     with st.container():
         st.markdown('<div class="rhombus-menu-marker"></div>', unsafe_allow_html=True)
@@ -475,7 +475,7 @@ elif st.session_state.page == 'about':
                 st.markdown("""
                 <div style='font-size:20px; line-height:2.0; color:#374151;'>
                 <ol>
-                <li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清典籍隐喻语料库</b>，进行库内数据探索与检索。</li>
+                <li style='margin-bottom: 15px;'>点击顶端选项卡 <b>明清文学隐喻语料库</b>，进行库内数据探索与检索。</li>
                 <li>点击顶端选项卡 <b>在线隐喻识别</b>，输入自定义句子，观察多智能体的协同推理分析。</li>
                 </ol>
                 </div>
