@@ -71,29 +71,61 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-/* ================= 1. 顶部导航浮标化 ================= */
+/* ================= 1. 页面基础内边距修复 ================= */
+    [data-testid="collapsedControl"] { display: none !important; }
+    header[data-testid="stHeader"] { display: none !important; }
+    
+    /* 核心修复：把顶部的巨大空白去掉，只留下刚好容纳悬浮顶栏的空间 */
+    .main .block-container {
+        padding-top: 100px !important; 
+        padding-bottom: 5rem !important;
+    }
+
+    /* ================= 2. 真正的全局悬浮顶栏 (Navbar) ================= */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] {
         position: fixed !important;
-        top: 20px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: auto !important;
-        min-width: 600px;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important; /* 撑满屏幕宽度 */
         z-index: 999999 !important;
-        background-color: rgba(255, 255, 255, 0.9) !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(10px) !important;
-        padding: 10px 30px !important;
-        border-radius: 50px !important; /* 胶囊浮标状 */
-        border: 1px solid rgba(229, 231, 235, 0.5) !important;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        padding: 15px 3% !important; /* 左右留出呼吸感边距 */
+        border-bottom: 1px solid rgba(229, 231, 235, 0.8) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; /* 悬浮阴影 */
+        align-items: center !important; /* 垂直居中 */
     }
     
-    /* 移除浮标内按钮的默认边框，使其更整洁 */
+    /* 顶栏内右侧按钮美化为文字选项卡 */
     div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button {
         border: none !important;
         background: transparent !important;
-        font-size: 20px !important;
+        font-size: 18px !important;
+        box-shadow: none !important;
+        color: #4B5563 !important;
     }
+    /* 当前页面选项卡底边框高亮 */
+    div[data-testid="stElementContainer"]:has(.sticky-nav-marker) + div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        color: #1E3A8A !important;
+        font-weight: bold !important;
+        border-bottom: 3px solid #1E3A8A !important;
+        border-radius: 0 !important;
+    }
+
+    # /* ================= 3. 首页大标题绝对居中修复 ================= */
+    # .hero-title {
+    #     width: 100%;
+    #     display: block !important;
+    #     text-align: center !important;
+    #     font-family: 'SimSun', 'STSong', serif;
+    #     font-size: 5rem;
+    #     color: #1F2937;
+    #     margin-top: 8vh;
+    #     margin-bottom: 8vh;
+    #     font-weight: bold;
+    #     letter-spacing: 15px;
+    #     text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+    # }
     
     /* ================= 3. 首页大标题与圆角大菱形矩阵菜单 (终极安全防倾斜版) ================= */
     .hero-title {
@@ -325,13 +357,16 @@ def get_similar_metaphors(target_analysis, target_sentence, samples_pool, top_k=
 # ================= 3. 路由与全局顶栏功能 =================
 
 def render_top_nav():
+    """渲染原生且能吸顶的顶部导航栏"""
     st.markdown('<div class="sticky-nav-marker"></div>', unsafe_allow_html=True)
-    # 增加占位空间，防止浮标遮挡正文标题
-    st.markdown('<div style="height: 80px;"></div>', unsafe_allow_html=True)
     
-    # 浮标内部的四列布局
-    c1, c2, c3, c4 = st.columns([1, 1, 1.5, 1.5])
+    # 重新分配列比例：左侧标题占绝大部分，右侧给选项卡
+    col_title, c1, c2, c3, c4 = st.columns([4, 1, 1, 1.2, 1.5], gap="small")
     
+    with col_title:
+        # 左侧平台名称，垂直居中
+        st.markdown("<h3 style='margin:0; padding-top:5px; color:#1E3A8A; font-weight:bold; letter-spacing: 2px;'>明清典籍隐喻计算平台</h3>", unsafe_allow_html=True)
+
     pages = {
         "🏠 首页": "home",
         "ℹ️ 关于": "about",
@@ -339,11 +374,12 @@ def render_top_nav():
         "🤖 在线识别": "online"
     }
     
+    # 右侧渲染四个选项卡
     for col, (label, p) in zip([c1, c2, c3, c4], pages.items()):
         with col:
-            # 选中的页面文字加粗并变色
+            # 选中的页面使用 primary 样式高亮
             is_active = st.session_state.page == p
-            style = "color: #1E3A8A; font-weight: bold;" if is_active else "color: #6B7280;"
+            btn_type = "primary" if is_active else "secondary"
             if st.button(label, key=f"nav_{p}", use_container_width=True):
                 st.session_state.page = p
                 st.rerun()
