@@ -92,38 +92,75 @@ st.markdown("""
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div { transform: rotate(-45deg) !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; }
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p { font-size: 26px !important; font-weight: 900 !important; color: #1E3A8A !important; margin: 0 !important; line-height: 1.4 !important; }
     }
-
-    /* ================= 2. 手机端响应式适配 (<= 768px) ================= */
+/* ================= 3. 手机端排版修复 (<= 768px) ================= */
     @media (max-width: 768px) {
         .main .block-container { padding-top: 20px !important; padding-left: 10px !important; padding-right: 10px !important; }
-        .hero-title { font-size: 2.5rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
+        .hero-title { font-size: 2.2rem !important; margin-top: 5vh !important; letter-spacing: 5px !important; text-align: center !important; }
         .floating-stats { display: none !important; }
-
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div { position: relative !important; top: unset !important; padding: 5px !important; background-color: #FAF9F6 !important; box-shadow: none !important; border-bottom: none !important; }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div > div { flex-direction: column !important; max-width: 100% !important; }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 { text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important; }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button { background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important; }
-        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] { background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important; }
-
-        /* 手机端缩小版菱形网格修复 */
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
-            display: grid !important; grid-template-columns: 90px 90px !important; grid-template-rows: 90px 90px !important;    
-            column-gap: 12px !important; row-gap: 2px !important;     
-            width: 194px !important; height: 184px !important; 
-            margin: 20px auto 40px auto !important; transform: rotate(45deg) !important; padding: 0 !important;
+        
+        /* 手机端导航条与抗深色模式修复 */
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div {
+            position: relative !important; background: #FAF9F6 !important; box-shadow: none !important; border-bottom: none !important; padding: 5px !important;
         }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div h2 {
+            text-align: center !important; font-size: 24px !important; margin-bottom: 10px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button {
+            background-color: #FFFFFF !important; color: #1F2937 !important; border: 1px solid #E5E7EB !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; height: 50px !important; margin-bottom: 8px !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(.sticky-nav-marker) + div button[kind="primary"] {
+            background-color: #F8FAFC !important; border-bottom: 4px solid #1F2937 !important; font-weight: 800 !important;
+        }
+
+        /* --- 🚀 核心黑科技修复：手机端菱形强制拼合 (CSS Grid + 容器穿透) --- */
+        
+        /* 1. 将根容器设为严格的 2x2 网格阵列，钉死宽高 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) {
+            display: grid !important;
+            grid-template-columns: 114px 114px !important; /* 精确的两列 */
+            grid-template-rows: 114px 114px !important;    /* 精确的两行 */
+            gap: 12px !important;                          /* 菱形间的完美缝隙 */
+            width: 240px !important;
+            height: 240px !important;
+            margin: 20px auto 50px auto !important;
+            transform: rotate(45deg) !important;           /* 保留旋转 */
+            padding: 0 !important;
+        }
+
+        /* 2. 剥掉 Streamlit 套在按钮外面的所有“伪装”外壳，让按钮直接参与网格排版 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stHorizontalBlock"],
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="column"],
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stVerticalBlock"],
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stElementContainer"] { display: contents !important; }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stElementContainer"]:first-child { display: none !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) div[data-testid="stElementContainer"] {
+            display: contents !important; 
+        }
+
+        /* 3. 隐藏 marker 占位符，以免它霸占网格的一个格子 */
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) > div[data-testid="stElementContainer"]:first-child {
+            display: none !important;
+        }
+
+        /* 4. 按钮尺寸完美填满网格单元 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button {
-            width: 90px !important; height: 90px !important; border-radius: 20px !important; background-color: #FFFFFF !important; border: 2px solid #E5E7EB !important; box-shadow: 0 4px 10px rgba(0,0,0,0.06) !important; padding: 0 !important; margin: 0 !important;
+            width: 114px !important; 
+            height: 114px !important; 
+            border-radius: 25px !important;
+            background-color: #FFFFFF !important;
+            border: 2px solid #E5E7EB !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.06) !important;
+            padding: 0 !important; margin: 0 !important;
         }
+
+        /* 5. 内部文字反转回正并修正颜色 */
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button > div {
-            transform: rotate(-45deg) !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important;
+            transform: rotate(-45deg) !important; 
+            display: flex !important; flex-direction: column !important; 
+            align-items: center !important; justify-content: center !important;
+            width: 100% !important; height: 100% !important;
         }
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p { font-size: 16px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important; }
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .rhombus-menu-marker) button p {
+            font-size: 20px !important; font-weight: 900 !important; color: #1F2937 !important; margin: 0 !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
