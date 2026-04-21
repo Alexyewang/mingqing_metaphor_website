@@ -402,8 +402,8 @@ elif st.session_state.page == 'corpus':
             if filter_conv != "全部": filtered_samples = [s for s in filtered_samples if s.get("Conventionality") == filter_conv]
             if filter_form != "全部": filtered_samples = [s for s in filtered_samples if s.get("Form_Features") == filter_form]
                 
-            if filter_syntax == "全部" and filter_cog == "全部" and filter_conv == "全部" and filter_form == "全部":
-                filtered_samples.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
+            # if filter_syntax == "全部" and filter_cog == "全部" and filter_conv == "全部" and filter_form == "全部":
+            #     filtered_samples.sort(key=lambda x: 1 if x.get("Label") == 1 and x.get("Syntax_Type", "未知") != "未知" else 0, reverse=True)
                 
             st.markdown(f"<br><div style='text-align:center; font-size:20px; margin-bottom: 20px;'>为您检索到 <span style='color:#1D4ED8; font-weight:bold; font-size:28px;'>{len(filtered_samples)}</span> 条符合条件的语料。</div>", unsafe_allow_html=True)
             
