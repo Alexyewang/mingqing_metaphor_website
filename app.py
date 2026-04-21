@@ -354,7 +354,7 @@ elif st.session_state.page == 'about':
             st.markdown(f"<h2 style='color:#1E3A8A; margin-bottom: 20px;'>📘 {about_nav}</h2>", unsafe_allow_html=True)
             st.divider()
             if about_nav == "项目简介":
-                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size:20px; line-height:2.0; color:#374151;'>本项目针对现有隐喻识别方法难以适配古典文本的问题，搭建了解耦多智能体隐喻识别框架与明清文学隐喻标注平台。平台支持在线句子隐喻识别、古典小说语句检索，并依据传统隐喻理论加入细粒度特征筛选功能。因隐喻本身存在理解差异，设“提交意见”窗口，经后台人工审核持续优化，维护学术争鸣的平台环境。本项目旨在通过多智能体大模型技术，对明清经典文学作品中的隐喻修辞进行深度挖掘与语义计算，为数字人文研究提供基础设施。欢迎提交反馈至：Alexye.wang22@gmail.com</p>", unsafe_allow_html=True)
             elif about_nav == "主要功能":
                 st.markdown("<div style='font-size:20px; line-height:2.0; color:#374151;'><ul><li style='margin-bottom: 15px;'><b>细粒度隐喻语料检索</b>：支持多维度的隐喻特征交叉检索与展示。</li><li style='margin-bottom: 15px;'><b>多智能体三审制在线识别</b>：通过语义提取、深度推理、逻辑裁判三步完成自动识别。</li><li><b>自动特征分类与专家共创</b>：支持细粒度分类以及专家的在线反馈与纠错。</li></ul></div>", unsafe_allow_html=True)
             elif about_nav == "使用指南":
