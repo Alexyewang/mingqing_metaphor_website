@@ -525,16 +525,46 @@ elif st.session_state.page == 'online':
                             {"task_name": "规约化角度", "options": "死喻、活喻", "keys": ["conventionality", "conventionality_analysis"]},
                             {"task_name": "表现形式与特征", "options": "单选或多选：显性隐喻/隐性隐喻、根隐喻/派生隐喻、以相似性为基础的隐喻/创造相似性的隐喻", "keys": ["form_features", "form_analysis"]}
                         ]
-                        cols = st.columns(2)
-                        st.markdown('<div class="agent-box agent4"><b style="color: #5B21B6; font-size: 18px;">📊 细粒度分类报告：</b><br/><br/>', unsafe_allow_html=True)
+                        
+                        # 🚀 核心修复：创建一个空占位符，用来装整个带紫框的 HTML
+                        report_placeholder = st.empty()
+                        
+                        # 定义 HTML 的开头（包含紫框和 CSS Grid 两列布局）和结尾
+                        html_start = '<div class="agent-box agent4"><b style="color: #5B21B6; font-size: 18px;">📊 细粒度分类报告：</b><br/><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">'
+                        html_end = '</div></div>'
+                        current_cards = ""
+                        
+                        # 预先显示紫框和标题（这时候里面是空的）
+                        report_placeholder.markdown(html_start + current_cards + html_end, unsafe_allow_html=True)
+                        
                         for idx, task in enumerate(category_tasks):
                             agent_prompt = f"""作为语言学专家，请判定该《{book_context}》隐喻句的【{task['task_name']}】特征。\n【句子】: "{test_sentence}"\n【前期隐喻分析依据】: "{reason2}"\n\n请判断它属于以下哪些类别，并给出简要分析（必须严格从给定类别中选择）：\n{task['options']}\n\n请严格返回JSON格式：\n{{\n"{task['keys'][0]}": "识别出的类别",\n"{task['keys'][1]}": "分析依据"\n}}"""
                             try:
                                 resp = client.chat.completions.create(model=config["model_name"], messages=[{"role": "user", "content": agent_prompt}], temperature=0.0, response_format={'type': 'json_object'})
-                                res_json = json.loads(resp.choices[0].message.content.strip())
-                                cols[idx % 2].markdown(f"""<div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border-left: 4px solid #8B5CF6; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"><b style="color: #4C1D95; font-size: 16px;">{task['task_name']}</b><br/><br/><span style="font-size: 15px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold; background-color: #FDF4FF; padding: 2px 6px; border-radius: 4px;">{res_json.get(task['keys'][0], '未知')}</span></span><br/><br/><span style="font-size: 15px; color: #475569; line-height: 1.6;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span></div>""", unsafe_allow_html=True)
-                            except Exception as e: st.error(f"分类任务 {task['task_name']} 失败: {e}")
-                        st.markdown('</div>', unsafe_allow_html=True)
+                                
+                                # 强力剥离 Markdown 代码块符，防止 JSON 解析报错
+                                raw_reply = resp.choices[0].message.content.strip()
+                                if raw_reply.startswith("```"):
+                                    raw_reply = raw_reply.lstrip("`").lstrip("json").strip()
+                                    raw_reply = raw_reply.rstrip("`").strip()
+                                res_json = json.loads(raw_reply)
+                                
+                                # 纯 HTML 格式生成一张小卡片
+                                card_html = f"""
+                                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border-left: 4px solid #8B5CF6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 100%;">
+                                    <b style="color: #4C1D95; font-size: 16px;">{task['task_name']}</b><br/><br/>
+                                    <span style="font-size: 15px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold; background-color: #FDF4FF; padding: 2px 6px; border-radius: 4px;">{res_json.get(task['keys'][0], '未知')}</span></span><br/><br/>
+                                    <span style="font-size: 15px; color: #475569; line-height: 1.6;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
+                                </div>
+                                """
+                                current_cards += card_html
+                                
+                                # 每解析出一个卡片，就把带紫框的整个大包裹重新渲染一次，实现动态装填效果
+                                report_placeholder.markdown(html_start + current_cards + html_end, unsafe_allow_html=True)
+                                
+                            except Exception as e: 
+                                st.error(f"分类任务 {task['task_name']} 解析失败: {e}")
+                                
                         status4.update(label="✅ Agent 4 (多维度分类) 完成！", state="complete", expanded=True)
 
                     st.markdown("<br><h3 style='color:#1F2937;'>💡 基于当前分析逻辑的关联推荐</h3>", unsafe_allow_html=True)
