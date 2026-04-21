@@ -551,11 +551,11 @@ elif st.session_state.page == 'online':
                                 
                                 # 纯 HTML 格式生成一张小卡片
                                 card_html = f"""
-                                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border-left: 4px solid #8B5CF6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 100%;">
-                                    <b style="color: #4C1D95; font-size: 16px;">{task['task_name']}</b><br/><br/>
-                                    <span style="font-size: 15px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold; background-color: #FDF4FF; padding: 2px 6px; border-radius: 4px;">{res_json.get(task['keys'][0], '未知')}</span></span><br/><br/>
-                                    <span style="font-size: 15px; color: #475569; line-height: 1.6;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
-                                </div>
+<div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border-left: 4px solid #8B5CF6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); height: 100%;">
+    <b style="color: #4C1D95; font-size: 16px;">{task['task_name']}</b><br/><br/>
+    <span style="font-size: 15px;"><b>归类：</b> <span style="color: #D946EF; font-weight: bold; background-color: #FDF4FF; padding: 2px 6px; border-radius: 4px;">{res_json.get(task['keys'][0], '未知')}</span></span><br/><br/>
+    <span style="font-size: 15px; color: #475569; line-height: 1.6;"><b>解析：</b> {res_json.get(task['keys'][1], '')}</span>
+</div>
                                 """
                                 current_cards += card_html
                                 
