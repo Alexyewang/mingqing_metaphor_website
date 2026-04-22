@@ -578,7 +578,7 @@ elif st.session_state.page == 'online':
                         else: st.info("当前本地语料库中暂无相似度极高的案例。")
 
 # ================= 5. 左下角全局浮动访问量统计 =================
-total_visits = get_and_update_visit_count()+400
+total_visits = get_and_update_visit_count()+477
 st.markdown(f"""
     <div class="floating-stats">
         <div style="font-weight: bold; margin-bottom: 5px;">👁️ 累计访问</div>
